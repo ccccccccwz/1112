@@ -1,6 +1,6 @@
-// src/components/TaskPanel/TaskPanel.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { message } from "antd";
 import SearchBar from "./SearchBar";
 import ProjectTable from "./ProjectTable";
 import AddProjectModal from "./AddProjectModal";
@@ -13,8 +13,6 @@ export default function TaskPanel() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showExecutorModal, setShowExecutorModal] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState(null);
-
-  // 查询条件
   const [filters, setFilters] = useState({
     testGroup: undefined,
     projectLevel: undefined,
@@ -22,14 +20,9 @@ export default function TaskPanel() {
     projectName: ""
   });
 
-  /* ========== 拉取项目列表 ========== */
-
   const fetchProjects = useCallback(async (params) => {
     try {
-      const res = await axios.get(`${API_BASE}/projects/projects`, {
-        // params, // 如果后端支持过滤，可开启
-      });
-
+      const res = await axios.get(`${API_BASE}/projects/projects`);
       const data = res.data.map((p) => ({
         ...p,
         id: p.ID ?? p.id,
@@ -41,12 +34,7 @@ export default function TaskPanel() {
         if (f.testGroup && p.TestGroup !== f.testGroup) return false;
         if (f.projectLevel && p.ProjectLevel !== f.projectLevel) return false;
         if (f.status && p.Status !== f.status) return false;
-        if (
-          f.projectName &&
-          !String(p.ProjectName || "")
-            .toLowerCase()
-            .includes(f.projectName.toLowerCase())
-        ) {
+        if (f.projectName && !String(p.ProjectName || "").toLowerCase().includes(f.projectName.toLowerCase())) {
           return false;
         }
         return true;
@@ -55,206 +43,146 @@ export default function TaskPanel() {
       setProjects(filtered);
     } catch (err) {
       console.error("获取项目列表失败:", err);
+      message.error("获取项目列表失败");
     }
   }, []);
 
-  // 初始化时拉一次
   useEffect(() => {
     fetchProjects(filters);
   }, [fetchProjects]);
 
-  /* ========== 执行人懒加载 ========== */
-
   const loadExecutorsForProject = useCallback(async (projectId) => {
     try {
-      const res = await axios.get(
-        `${API_BASE}/executors/executors/${projectId}`
-      );
+      const res = await axios.get(`${API_BASE}/executors/executors/${projectId}`);
       const executors = res.data || [];
       setProjects((prevProjects) =>
-        prevProjects.map((p) =>
-          p.id === projectId ? { ...p, executors } : p
-        )
+        prevProjects.map((p) => (p.id === projectId ? { ...p, executors } : p))
       );
     } catch (err) {
-      console.error(`加载项目 ${projectId} 的执行人失败:`, err);
+      console.error(`加载执行人失败:`, err);
+      message.error("加载执行人失败");
     }
   }, []);
 
-  /* ========== 新建项目 / 执行人 ========== */
-
-  const handleAddProjectSubmit = useCallback((values) => {
-    setProjects((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        executors: [],
-        Status: "进行中",
-        ...values
-      }
-    ]);
+  const handleAddProjectSubmit = useCallback(() => {
     setShowProjectModal(false);
-  }, []);
+    fetchProjects(filters);
+  }, [fetchProjects, filters]);
 
   const handleAddExecutorClick = useCallback((project) => {
     setCurrentProjectId(project.id);
     setShowExecutorModal(true);
   }, []);
 
-  const handleAddExecutorSubmit = useCallback((executor) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === currentProjectId
-          ? { ...p, executors: [...(p.executors || []), executor] }
-          : p
-      )
-    );
+  const handleAddExecutorSubmit = useCallback(() => {
     setShowExecutorModal(false);
-  }, [currentProjectId]);
+    if (currentProjectId) {
+      loadExecutorsForProject(currentProjectId);
+    }
+  }, [currentProjectId, loadExecutorsForProject]);
 
-  /* ========== 删除项目 / 执行人 ========== */
+  const handleDeleteProject = useCallback(async (id) => {
+    try {
+      await axios.post(`${API_BASE}/projects/delete_project`, { id });
+      message.success("删除成功");
+      fetchProjects(filters);
+    } catch (err) {
+      console.error("删除项目失败:", err);
+      message.error("删除项目失败");
+    }
+  }, [fetchProjects, filters]);
 
-  const handleDeleteProject = useCallback((id) => {
-    setProjects((prev) => prev.filter((p) => p.id !== id));
+  const handleDeleteExecutor = useCallback(async (projectId, executorId) => {
+    try {
+      await axios.post(`${API_BASE}/executors/delete_executor`, { id: executorId });
+      message.success("删除成功");
+      loadExecutorsForProject(projectId);
+    } catch (err) {
+      console.error("删除执行人失败:", err);
+      message.error("删除执行人失败");
+    }
+  }, [loadExecutorsForProject]);
+
+  const updateProjectField = useCallback(async (id, column, value) => {
+    try {
+      await axios.post(`${API_BASE}/projects/update_project`, { id, column, value });
+      setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, [column]: value } : p)));
+    } catch (err) {
+      console.error("更新项目失败:", err);
+      message.error("更新项目失败");
+    }
   }, []);
 
-  const handleDeleteExecutor = useCallback((projectId, executorId) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              executors: (p.executors || []).filter(
-                (e) => e.ID !== executorId
-              )
-            }
-          : p
-      )
-    );
-  }, []);
+  const handleTestGroupChange = useCallback((id, value) => updateProjectField(id, "TestGroup", value), [updateProjectField]);
+  const handleProjectLevelChange = useCallback((id, value) => updateProjectField(id, "ProjectLevel", value), [updateProjectField]);
+  const handleStatusChange = useCallback((id, value) => updateProjectField(id, "Status", value), [updateProjectField]);
+  const handleStartDateChange = useCallback((id, value) => updateProjectField(id, "StartDate", value), [updateProjectField]);
+  const handleExpectedIssuesChange = useCallback((id, value) => updateProjectField(id, "ExpectedIssues", value), [updateProjectField]);
+  const handleExpectedDIChange = useCallback((id, value) => updateProjectField(id, "ExpectedDI", value), [updateProjectField]);
+  const handleEditProjectName = useCallback((id, value) => updateProjectField(id, "ProjectName", value), [updateProjectField]);
 
-  /* ========== 更新项目字段 ========== */
-
-  const updateProjectField = useCallback((id, patch) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              ...patch
-            }
-          : p
-      )
-    );
-  }, []);
-
-  const handleTestGroupChange = useCallback(
-    (id, value) => updateProjectField(id, { TestGroup: value }),
-    [updateProjectField]
-  );
-  const handleProjectLevelChange = useCallback(
-    (id, value) => updateProjectField(id, { ProjectLevel: value }),
-    [updateProjectField]
-  );
-  const handleStatusChange = useCallback(
-    (id, value) => updateProjectField(id, { Status: value }),
-    [updateProjectField]
-  );
-  const handleStartDateChange = useCallback(
-    (id, value) => updateProjectField(id, { StartDate: value }),
-    [updateProjectField]
-  );
-  const handleExpectedIssuesChange = useCallback(
-    (id, value) => updateProjectField(id, { ExpectedIssues: value }),
-    [updateProjectField]
-  );
-  const handleExpectedDIChange = useCallback(
-    (id, value) => updateProjectField(id, { ExpectedDI: value }),
-    [updateProjectField]
-  );
-  const handleEditProjectName = useCallback(
-    (id, value) => updateProjectField(id, { ProjectName: value }),
-    [updateProjectField]
-  );
-
-  /* ========== 更新执行人字段 ========== */
-
-  const handleUpdateExecutor = useCallback(
-    (projectId, executorId, field, value) => {
+  const handleUpdateExecutor = useCallback(async (projectId, executorId, field, value) => {
+    try {
+      await axios.post(`${API_BASE}/executors/update_executor`, {
+        id: executorId,
+        [field]: value
+      });
       setProjects((prev) =>
         prev.map((p) =>
           p.id === projectId
             ? {
                 ...p,
-                executors: (p.executors || []).map((e) =>
-                  e.ID === executorId ? { ...e, [field]: value } : e
-                )
+                executors: (p.executors || []).map((e) => (e.ID === executorId ? { ...e, [field]: value } : e))
               }
             : p
         )
       );
-    },
-    []
-  );
-
-  const handleResetExpectedDI = useCallback((projectId, executorId) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              executors: (p.executors || []).map((e) =>
-                e.ID === executorId ? { ...e, ExpectedDI: null } : e
-              )
-            }
-          : p
-      )
-    );
+    } catch (err) {
+      console.error("更新执行人失败:", err);
+      message.error("更新执行人失败");
+    }
   }, []);
 
-  /* ========== 搜索 / 重置 / 刷新 ========== */
+  const handleResetExpectedDI = useCallback(async (projectId, executorId) => {
+    try {
+      await axios.post(`${API_BASE}/executors/reset_expected_update`, { id: executorId });
+      message.success("同步基线数据成功");
+      loadExecutorsForProject(projectId);
+    } catch (err) {
+      console.error("同步基线数据失败:", err);
+      message.error("同步基线数据失败");
+    }
+  }, [loadExecutorsForProject]);
 
   const handleFiltersChange = useCallback((newFilters) => {
     setFilters(newFilters);
   }, []);
 
-  const handleSearch = useCallback(
-    (newFilters) => {
-      setFilters(newFilters);
-      fetchProjects(newFilters);
-    },
-    [fetchProjects]
-  );
+  const handleSearch = useCallback((newFilters) => {
+    setFilters(newFilters);
+    fetchProjects(newFilters);
+  }, [fetchProjects]);
 
-  const handleReset = useCallback(
-    (resetFilters) => {
-      setFilters(resetFilters);
-      fetchProjects(resetFilters);
-    },
-    [fetchProjects]
-  );
+  const handleReset = useCallback((resetFilters) => {
+    setFilters(resetFilters);
+    fetchProjects(resetFilters);
+  }, [fetchProjects]);
 
-  const handleRefreshAll = useCallback(() => {
-    fetchProjects(filters);
+  const handleRefreshAll = useCallback(async () => {
+    try {
+      message.loading({ content: "正在刷新所有项目...", key: "refresh" });
+      await axios.post(`${API_BASE}/projects/refresh_all_projects`);
+      message.success({ content: "刷新完成", key: "refresh" });
+      fetchProjects(filters);
+    } catch (err) {
+      console.error("刷新失败:", err);
+      message.error({ content: "刷新失败", key: "refresh" });
+    }
   }, [fetchProjects, filters]);
 
-  /* ========== 打开 / 关闭模态框 ==========
-     这两个是“轻操作”，只改一个布尔值，
-     现在配合上 useCallback 的 ProjectTable props，
-     点它们时 ProjectTable 不会重渲染。
-  */
-
-  const openProjectModal = useCallback(() => {
-    setShowProjectModal(true);
-  }, []);
-
-  const closeProjectModal = useCallback(() => {
-    setShowProjectModal(false);
-  }, []);
-
-  const closeExecutorModal = useCallback(() => {
-    setShowExecutorModal(false);
-  }, []);
+  const openProjectModal = useCallback(() => setShowProjectModal(true), []);
+  const closeProjectModal = useCallback(() => setShowProjectModal(false), []);
+  const closeExecutorModal = useCallback(() => setShowExecutorModal(false), []);
 
   return (
     <div>
@@ -295,6 +223,7 @@ export default function TaskPanel() {
         visible={showExecutorModal}
         onCancel={closeExecutorModal}
         onSubmit={handleAddExecutorSubmit}
+        projectId={currentProjectId}
       />
     </div>
   );
