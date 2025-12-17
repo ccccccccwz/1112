@@ -1,0 +1,58 @@
+/* ProjectTable 表头加深一点背景色 */
+/* 如果这个页面只有一个主表，可以直接用第一个 .ant-table 做限定 */
+.ant-table-wrapper:first-of-type .ant-table-thead > tr > th.ant-table-cell {
+  background-color: #e0e0e0; /* 比默认更深一点 */
+  white-space: nowrap;
+  padding: 4px 6px;
+}
+
+/* 表体单元格稍微紧凑一点 */
+.ant-table-wrapper:first-of-type .ant-table-tbody > tr > td.ant-table-cell {
+  padding: 4px 6px;
+}
+
+/* 内容动画：很快的淡入淡出（0.08s） */
+.fast-modal-fade-enter,
+.fast-modal-fade-appear {
+  opacity: 0;
+  transform: scale(0.08);
+}
+
+.fast-modal-fade-enter-active,
+.fast-modal-fade-appear-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: all 0.08s ease-out;
+}
+
+.fast-modal-fade-leave {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.fast-modal-fade-leave-active {
+  opacity: 0;
+  transform: scale(0.18);
+  transition: all 0.08s ease-in;
+}
+
+/* 遮罩动画：同样很快的淡入淡出 */
+.fast-modal-mask-enter,
+.fast-modal-mask-appear {
+  opacity: 0;
+}
+
+.fast-modal-mask-enter-active,
+.fast-modal-mask-appear-active {
+  opacity: 1;
+  transition: opacity 0.08s linear;
+}
+
+.fast-modal-mask-leave {
+  opacity: 1;
+}
+
+.fast-modal-mask-leave-active {
+  opacity: 0;
+  transition: opacity 0.08s linear;
+}

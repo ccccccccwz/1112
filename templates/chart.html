@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="{{ url_for('static', filename='js/plotly-latest.min.js') }}"></script>
+    <title>Bonus Distribution</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212; /* 深黑色背景 */
+            color: #ffffff; /* 白色字体 */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* 隐藏溢出 */
+        }
+
+        h1 {
+            color: #ffffff;
+            margin: 0;
+            padding: 20px 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .chart-container {
+            display: flex;
+            flex: 1;
+            position: relative; /* 为子元素的绝对定位提供参考 */
+            background-color: #121212; /* 使容器和背景一致 */
+            padding: 20px; /* 增加内边距 */
+            gap: 20px; /* 增加图表之间的间距 */
+        }
+
+        #chart, #barchart {
+            flex: 1;
+            height: 100%; /* 填满高度 */
+            background-color: #121212; /* 使图表背景与页面背景一致 */
+            box-shadow: none; /* 移除阴影 */
+            border-radius: 0; /* 移除圆角 */
+        }
+
+        #barchart {
+            position: relative;
+        }
+
+        #top5 {
+            position: absolute;
+            top: 20px; /* 调整位置 */
+            right: 20px; /* 调整位置 */
+            width: 25%; /* 减小宽度 */
+            padding: 20px; /* 增加内边距 */
+            background-color: #1e1e1e; /* 添加背景色 */
+            border-radius: 10px; /* 添加圆角 */
+            z-index: 10; /* 确保 Top 5 在柱状图上方 */
+        }
+
+        #top5 h2 {
+            font-size: 20px; /* 增大字体 */
+            margin: 0 0 15px 0;
+            color: #ffa600;
+        }
+
+        #top5 ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #top5 li {
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px; /* 增大字体 */
+            background-color: #282828;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        #top5 li::before {
+            content: '★'; /* 使用 Unicode 星星字符 */
+            margin-right: 8px;
+            color: #ffa600; /* 星星的颜色 */
+        }
+    </style>
+</head>
+<body>
+    <h1>个人绩效管理</h1>
+    <div class="chart-container">
+        <div id="chart"></div>
+        <div id="barchart">
+            <div id="top5">
+                <h2>Top 5</h2>
+                <ul id="top5-list">
+                    <!-- Top 5 items will be appended here by JavaScript -->
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script>
+      // 使用 Jinja2 模板语法插入数据
+      var labels = {{ labels | tojson }};
+      var values = {{ values | tojson }};
+
+      // 饼图数据
+      var pieData = [{
+        values: values,
+        labels: labels,
+        type: 'pie',
+        textinfo: 'label+percent',
+        textposition: 'inside',
+        textfont: {
+          color: '#ffffff',
+          size: 14
+        },
+        marker: {
+          colors: ['#ff6361', '#bc5090', '#ffa600', '#58508d', '#003f5c'],
+          line: {
+            color: '#1e1e1e',
+            width: 2
+          }
+        },
+        hole: 0.4
+      }];
+
+      var pieLayout = {
+        title: {
+          text: '绩效比例',
+          font: {
+            size: 20,
+            color: '#ffffff'
+          }
+        },
+        paper_bgcolor: '#121212', // 与页面背景一致
+        plot_bgcolor: '#121212', // 与页面背景一致
+        font: {
+          color: '#ffffff'
+        },
+        showlegend: false,
+        margin: { l: 50, r: 50, b: 50, t: 50 } // 调整边距
+      };
+
+      var pieConfig = {
+        displayModeBar: false
+      };
+
+      Plotly.newPlot('chart', pieData, pieLayout, pieConfig);
+
+      // 柱状图数据
+      var barData = [{
+        x: labels,
+        y: values,
+        type: 'bar',
+        marker: {
+          color: '#ffa600'
+        },
+        text: values.map(v => v.toFixed(2)), // 显示具体数值
+        textposition: 'auto' // 自动调整文本位置
+      }];
+
+      var barLayout = {
+        title: {
+          text: '绩效排名',
+          font: {
+            size: 20,
+            color: '#ffffff'
+          }
+        },
+        paper_bgcolor: '#121212', // 与页面背景一致
+        plot_bgcolor: '#121212', // 与页面背景一致
+        font: {
+          color: '#ffffff'
+        },
+        xaxis: {
+          title: {
+            text: '',
+            font: {
+              color: '#ffffff'
+            }
+          },
+          tickangle: -45, // 倾斜 x 轴标签
+          automargin: true // 自动调整边距
+        },
+        yaxis: {
+          title: {
+            text: '绩效',
+            font: {
+              color: '#ffffff'
+            }
+          }
+        },
+        margin: { l: 50, r: 200, b: 100, t: 50 } // 增加右侧边距，避免遮挡
+      };
+
+      var barConfig = {
+        displayModeBar: false
+      };
+
+      Plotly.newPlot('barchart', barData, barLayout, barConfig);
+
+      // 生成Top 5列表
+      function generateTop5(labels, values) {
+        var data = labels.map((label, index) => {
+          return { label: label, value: values[index] };
+        });
+
+        data.sort((a, b) => b.value - a.value);
+
+        var top5 = data.slice(0, 5);
+
+        var top5List = document.getElementById('top5-list');
+        top5List.innerHTML = '';
+
+        top5.forEach(item => {
+          var listItem = document.createElement('li');
+          listItem.textContent = `${item.label}: ${item.value}`;
+          top5List.appendChild(listItem);
+        });
+      }
+
+      generateTop5(labels, values);
+    </script>
+</body>
+</html>

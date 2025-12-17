@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>绩效管理</title>
+  <link href="{{ url_for('static', filename='src/css/bootstrap.min.css') }}" rel="stylesheet" media="all" />
+  <script src="{{ url_for('static', filename='js/plotly-latest.min.js') }}"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+    .container-fluid {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .content {
+      display: none;
+      flex: 1;
+      overflow: auto;
+      position: relative; /* 开启相对定位 */
+      top: -30px;         /* 向上移动 20px */
+    }
+    .modebar {
+  display: none !important;
+}
+
+    .active {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: auto;
+    }
+    .chart-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex: 1;
+      padding: 20px;
+    }
+    .chart {
+      flex: 1;
+      height: 100%;
+    }
+    .divider {
+      border-top: 5px solid green;
+      margin: 20px 0;
+    }
+    .text-center {
+      color: green;
+    }
+    #top5 {
+      position: absolute;
+      margin-top: 180px;
+      top: -50px;
+      right: 30px;
+      width: 200px;
+      padding: 15px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+    }
+    #top5 h2 {
+      font-size: 18px;
+      margin: 0 0 10px 0;
+      color: #000000;
+    }
+    #top5 ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+    #top5 li {
+      margin: 5px 0;
+      padding: 8px;
+      font-size: 14px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+    }
+    #top5 li::before {
+      content: '★';
+      margin-right: 8px;
+      color: #ffa600;
+    }
+    @media (max-width: 768px) {
+      .chart-container {
+        flex-direction: column; /* 在较小屏幕上垂直排列图表 */
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid">
+  <h2 class="text-center">绩效管理</h2>
+  <div class="d-flex justify-content-start gap-2">
+    <button class="btn btn-primary" onclick="showContent('feature1')">项目绩效管理</button>
+    <button
+      id="returnHomeBtn"
+      class="btn btn-primary ms-2"
+      style="margin-left: 20px; margin-right: 15px; display: none;"
+      onclick="showContent('feature2')">
+      返回首页
+    </button>
+
+    <button
+      id="goStatisticalBtn"
+      class="btn btn-primary ms-auto"
+      style="margin-right: 15px; display: none;"
+      onclick="showContent('feature3')">
+      日均统计
+    </button>
+
+    <div id="dateFilter" class="d-flex flex-nowrap align-items-center">  <!-- 添加左侧间距 -->
+      <form id="dateForm" method="post" class="d-flex flex-nowrap align-items-center gap-2">
+        <label class="me-1">开始时间</label>
+          <input type="date" name="start_time" id="startTime" class="form-control me-2" style="width: 160px;" value="{{ start_time if start_time else '' }}" required onchange="validateDateRange()">
+        <label class="ms-2 me-1">结束时间</label>
+          <input type="date" name="end_time" id="endTime" class="form-control me-2" style="width: 160px;" value="{{ end_time if end_time else '' }}" required onchange="validateDateRange()">
+        <button class="btn btn-success ms-2" type="submit">筛选</button>
+        <button
+          class="btn btn-secondary ms-2"
+          onclick="clearFilters()">
+          <i class="bi bi-arrow-repeat"></i> 重置</button>
+           <!-- 错误提示容器 -->
+            <div id="dateError" class="text-danger ms-2" style="display:none;"></div>
+      </form>
+<!--      # DI计算规则-->
+      <button class="btn btn-info ms-2" data-bs-toggle="modal" data-bs-target="#helpModal">
+        <i class="bi bi-question-circle"></i> DI计算规则
+      </button>
+    </div>
+  </div>
+
+
+
+
+    <div class="divider"></div>
+    <div id="feature1" class="content">
+      <h3></h3>
+      <iframe id="iframe1" src="task" style="width: 100%; height: calc(100vh - 100px); border: none; overflow: auto;"></iframe>
+    </div>
+    <div id="feature3" class="content">
+      <h3></h3>
+      <iframe id="iframe3" src="statistical_di" style="width: 100%; height: calc(100vh - 100px); border: none; overflow: auto;"></iframe>
+    </div>
+    <div id="feature2" class="content active">
+      <div class="chart-container">
+          <div id="chart" class="chart"></div>
+          <div id="barchart" class="chart"></div>
+      </div>
+      <div id="top5">
+          <h2>Top 5</h2>
+          <ul id="top5-list"></ul>
+      </div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='src/js/bootstrap.bundle.min.js') }}"></script>
+  <script>
+    function showContent(id) {
+      var contents = document.querySelectorAll('.content');
+      contents.forEach(function(content) {
+        content.classList.remove('active');
+      });
+
+      var selectedContent = document.getElementById(id);
+      if (selectedContent) {
+        selectedContent.classList.add('active');
+      }
+
+      if (id === 'feature1') {
+        document.getElementById('dateFilter').classList.add('d-none');
+        document.getElementById('returnHomeBtn').style.display = '';
+        document.getElementById('goStatisticalBtn').style.display = '';
+        var iframe1 = document.getElementById('iframe1');
+        iframe1.src = iframe1.src;
+      } else if (id === 'feature2') {
+        document.getElementById('dateFilter').classList.remove('d-none');
+        document.getElementById('returnHomeBtn').style.display = 'none';
+        document.getElementById('goStatisticalBtn').style.display = 'none';
+        var iframe2 = document.getElementById('feature2');
+        feature2.src = feature2.src;
+      } else if (id == 'feature3') {
+        document.getElementById('goStatisticalBtn').style.display = '';
+        document.getElementById('returnHomeBtn').style.display = 'none';
+        var iframe3 = document.getElementById('iframe3');
+        feature3.src = feature3.src;
+      }
+    }
+
+    // 使用 Jinja2 模板语法插入数据
+    var labels = {{ labels | tojson }};
+    var values = {{ values | tojson }};
+
+    // 饼图数据和配置
+    var pieData = [{
+      values: values,
+      labels: labels,
+      type: 'pie',
+      textinfo: 'label+percent',
+      textposition: 'inside',
+      textfont: {
+        color: '#000000',
+        size: 14
+      },
+      marker: {
+        colors: ['#ff6361', '#bc5090', '#ffa600', '#58508d', '#003f5c'],
+        line: {
+          color: '#ffffff',
+          width: 2
+        }
+      },
+      hole: 0.4
+    }];
+
+    var pieLayout = {
+      title: {
+        text: '绩效比例',
+        font: {
+          size: 20,
+          color: '#000000'
+        }
+      },
+      paper_bgcolor: '#ffffff',
+      plot_bgcolor: '#ffffff',
+      font: {
+        color: '#000000'
+      },
+      showlegend: false,
+      margin: { l: 50, r: 50, b: 50, t: 50 }
+    };
+
+    Plotly.newPlot('chart', pieData, pieLayout);
+
+    // 柱状图数据和配置
+    var barData = [{
+      x: labels,
+      y: values,
+      type: 'bar',
+      marker: {
+        color: '#ffa600'
+      },
+      text: values.map(v => v.toFixed(2)),
+      textposition: 'auto'
+    }];
+
+    var barLayout = {
+      title: {
+        text: '绩效排名',
+        font: {
+          size: 20,
+          color: '#000000'
+        }
+      },
+      paper_bgcolor: '#ffffff',
+      plot_bgcolor: '#ffffff',
+      font: {
+        color: '#000000'
+      },
+      xaxis: {
+        title: {
+          text: '',
+          font: {
+            color: '#000000'
+          }
+        },
+        tickangle: -45,
+        automargin: true
+      },
+      yaxis: {
+        title: {
+          text: '绩效',
+          font: {
+            color: '#000000'
+          }
+        }
+      },
+      margin: { l: 50, r: 50, b: 100, t: 50 }
+    };
+
+    Plotly.newPlot('barchart', barData, barLayout);
+
+    // 生成Top 5列表
+    function generateTop5(labels, values) {
+      var data = labels.map((label, index) => {
+        return { label: label, value: values[index] };
+      });
+
+      data.sort((a, b) => b.value - a.value);
+
+      var top5 = data.slice(0, 5);
+
+      var top5List = document.getElementById('top5-list');
+      top5List.innerHTML = '';
+
+      top5.forEach(item => {
+        var listItem = document.createElement('li');
+        listItem.textContent = `${item.label}: ${item.value}`;
+        top5List.appendChild(listItem);
+      });
+    }
+
+    generateTop5(labels, values);
+  </script>
+
+    <script>
+    // 重置功能增强
+    function clearFilters() {
+      // 清空输入
+      document.getElementById('startTime').value = '';
+      document.getElementById('endTime').value = '';
+
+      // 清除错误提示
+      document.getElementById('dateError').style.display = 'none';
+
+      // 移除URL参数并刷新
+      window.location.href = window.location.pathname;
+    }
+    </script>
+    <script>
+    // 日期验证逻辑
+    function validateDateRange() {
+      const errorContainer = document.getElementById('dateError');
+      errorContainer.style.display = 'none';
+
+      // 获取输入值
+      const start = document.getElementById('startTime').value;
+      const end = document.getElementById('endTime').value;
+      if (!start || !end) return true;
+
+      // 转换为日期对象
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // 清除时间部分
+      startDate.setHours(0,0,0,0);
+
+      // 验证逻辑
+      let errorMsg = '';
+      if (startDate > today) {
+        errorMsg = '❌ 开始时间不能选择未来日期！';
+      } else if (startDate > endDate) {
+        errorMsg = '❌ 开始时间不能晚于结束时间！';
+      }
+
+      // 显示错误
+      if (errorMsg) {
+        errorContainer.textContent = errorMsg;
+        errorContainer.style.display = 'block';
+        return false;
+      }
+      return true;
+    }
+
+    // 表单提交拦截
+    document.getElementById('dateForm').addEventListener('submit', function(e) {
+      if (!validateDateRange()) {
+        e.preventDefault();
+        // 自动滚动到错误提示
+        document.getElementById('dateError').scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    });
+    </script>
+
+  <!-- 计算规则模态框 -->
+  <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="helpModalLabel">个人DI值计算说明</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h6>计算公式：基础DI × 达标系数 × 奖励系数 × 项目因子</h6>
+
+        <ol class="mt-3">
+          <li class="mb-2">
+            <strong>基础DI值计算</strong><br>
+            (一级问题数×10 + 二级问题数×3 + 三级问题数×1 + 四级问题数×0.5) × 项目系数
+          </li>
+          <li class="mb-2">
+            <strong>达标系数</strong><br>
+            如果个人实际DI值 &lt; (项目预期DI均值 * 投入天数 / 项目总天数），则不达标，个人实际DI值 × 0.9
+          </li>
+          <li class="mb-2">
+            <strong>奖励系数（上限1.2）</strong><br>
+            个人实际DI / 挑战DI，如果个人实际DI值 &gt; 挑战DI，个人DI × 奖励系数
+          </li>
+          <li>
+            <strong>项目因子</strong><br>
+            计算公式：DI总和 / 项目预期DI<br>
+            区分重点项目与普通项目：
+            <ul>
+              <li>重点项目固定乘项目因子，即项目总DI达标获得加成，总DI不达标需要减益</li>
+              <li>普通项目不达标时才乘项目因子，只有不达标会获得减益，达标该值固定为1，不会获得加成</li>
+            </ul>
+          </li>
+        </ol>
+        <div class="mt-4">
+          <strong>另注：</strong>
+          <p>挑战DI：上一年度员工基线日均DI × 投入天数</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

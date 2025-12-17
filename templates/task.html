@@ -1,0 +1,2159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <title>项目绩效管理</title>
+  <!-- 引入 LayUI 样式 -->
+  <link href="{{ url_for('static', filename='src/css/layui.css') }}" rel="stylesheet" media="all" />
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet" media="all" />
+  <style>
+        body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+select[lay-ignore] {
+    appearance: none;          /* 标准语法 */
+    padding-right: 20px;       /* 预留箭头空间 */
+    border: 1px solid #ddd;    /* 可选：添加边框保持美观 */
+    border-radius: 2px;
+    cursor: pointer;
+}
+.data-source {
+  margin-bottom: 15px;
+}
+.data-source{
+  margin-right: 30px;
+  display: flex;
+  gap: 30px; /* 控制 radio 之间的间隔 */
+}
+.itest-fields,
+.manual-fields {
+  transition: all 0.3s ease;
+}
+    .layui-table-box {
+
+  height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+    .layui-table-body {
+  flex: 1;
+  overflow: auto;
+}
+
+
+    .search-container {
+      align-items: center;
+      margin: 0 auto;
+    }
+
+    .search-item {
+
+      margin-right: 20px;
+      margin-bottom: 20px;
+    }
+
+      /* 表头样式 */
+  .layui-table th[data-field="ExpectedDI"],
+  .layui-table th[data-field="ExpectedIssues"],
+  .layui-table th[data-field="ExpectedDI"] {
+    color: red !important;
+  }
+
+  /* 数据单元格样式 */
+  .layui-table td[data-field="ExpectedDI"],
+  .layui-table td[data-field="ExpectedIssues"],
+  .layui-table td[data-field="ExpectedDI"] {
+    color: red !important;
+  }
+
+  /* 子表中的挑战问题数和挑战DI */
+  .child-table-input[data-field="ExpectedIssues"],
+  .child-table-input[data-field="ExpectedDI"] {
+    color: red !important;
+  }
+
+<!--  /* 子表表头中的挑战问题数和挑战DI */-->
+<!--  .layui-table th[title*="挑战问题数"],-->
+<!--  .layui-table th[title*="挑战DI"] {-->
+<!--    color: red !important;-->
+<!--  }-->
+
+    .layui-table-page {
+      flex-shrink: 0; /* 禁止分页控件缩小 */
+      background: #f8f8f8; /* 可选：为分页控件设置背景色 */
+    }
+
+    @media (max-width: 768px) {
+      .search-item {
+        margin-right: 10px;
+      }
+
+      .header-add-btn {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+    }
+    .expand-btn {
+      cursor: pointer;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      text-align: center;
+      line-height: 16px;
+      border-radius: 2px;
+      background-color: #f2f2f2;
+    }
+
+    .search-container {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 20px;
+    }
+
+    .search-item {
+      margin-right: 20px;
+      margin-bottom: 20px;
+    }
+
+    .header-add-btn-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+
+    .header-add-btn {
+      cursor: pointer;
+      padding: 8px 0;
+      background-color: #dcdcdc;
+      color: #000;
+      border-radius: 4px;
+      text-align: center;
+      width: 120px;
+      box-sizing: border-box;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .modal-content {
+      background: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    width: 400px;
+    position: relative;
+    animation: modalShow 0.3s ease-out;
+    }
+@keyframes modalShow {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+    .close,
+    .close-executor {
+       position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s;
+    }
+
+    .close:hover,
+    .close:focus,
+    .close-executor:hover,
+    .close-executor:focus {
+      color: #333;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  h3 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+    font-size: 1.5em;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+}
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 500;
+}
+    }
+
+    .form-group select {
+      width: 420px;
+    padding: 10px;
+    appearance: none;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    }
+    .form-group input {
+      width: 290px;
+    padding: 10px;
+    appearance: none;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    }
+
+select:focus, input:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+button[type="submit"] {
+    width: 100%;
+    padding: 12px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button[type="submit"]:hover {
+    background-color: #2980b9;
+}
+
+input[type="date"] {
+    appearance: none;
+    padding: 9px;
+}
+/* 下拉箭头美化 */
+select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 1em;
+}
+    .layui-table-cell {
+      overflow: visible;
+      padding: 0;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .layui-btn {
+      margin: 2px 0;
+    }
+/* 核心修正方案 */
+#testgroupSelect.layui-select,
+#projectlevelSelect.layui-select,
+#projectstatusSelect.layui-select{
+    width: 150px;  /* 设置合适的基础宽度 */
+    padding: 8px 35px 8px 12px;  /* 右侧预留箭头空间 */
+    box-sizing: border-box;      /* 关键：包含padding在宽度内 */
+
+    /* 隐藏默认箭头 */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    /* 自定义箭头 */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+
+    /* 覆盖layui默认样式 */
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #606266;
+}
+
+/* 悬浮/聚焦状态增强 */
+#testgroupSelect.layui-select:hover,
+ #projectlevelSelect.layui-select:hover,
+#projectstatusSelect.layui-select:hover{
+    border-color: #c0c4cc;
+}
+#testgroupSelect.layui-select:focus,
+ #projectlevelSelect.layui-select:focus,
+#projectstatusSelect.layui-select:focus{
+    border-color: #409eff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+}
+    select.layui-input {
+      width: 100%;
+      height: 38px;
+      line-height: 38px;
+      padding: 0 10px;
+      box-sizing: border-box;
+      border: none;
+      background: transparent;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      position: relative;
+      z-index: 10;
+      /* 确保下拉菜单在其他元素之上 */
+    }
+
+    .flex-container {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+      position: relative;
+      /* 确保子元素可以绝对定位 */
+    }
+
+    .expand-row td {
+      padding-left: 100px;
+      background-color: #f9f9f9;
+    }
+
+    .expand-row table {
+      width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+
+
+    /* 应用到子表输入框 */
+    .child-table-input {
+      border: none;
+      /* 确保边框颜色一致 */
+      padding: none;
+      /* 确保内边距一致 */
+      box-sizing: border-box;
+      /* 确保内边距和边框不影响元素的最终大小 */
+      height: 22px;
+      /* 确保高度一致 */
+      line-height: 22px;
+      /* 确保行高一致 */
+      width: 50px;
+      /* 根据需要设置宽度 */
+      text-align: center;
+      /* 居中文本 */
+    }
+
+    /* 应用到子表输入框 */
+    .child-table-name-input {
+      border: none;
+      /* 确保边框颜色一致 */
+      padding: none;
+      /* 确保内边距一致 */
+      box-sizing: border-box;
+      /* 确保内边距和边框不影响元素的最终大小 */
+      height: 30px;
+      /* 确保高度一致 */
+      line-height: 30px;
+      /* 确保行高一致 */
+      width: 100px;
+      /* 根据需要设置宽度 */
+      text-align: center;
+      /* 居中文本 */
+    }
+
+    /* 可编辑输入框通用样式 */
+    .input-no-border {
+      border: none;
+      /* 无边框 */
+      padding: none;
+      /* 内边距 */
+      box-sizing: border-box;
+      /* 确保内边距不影响元素大小 */
+      height: 30px;
+      /* 输入框高度 */
+      line-height: 30px;
+      /* 行高 */
+      text-align: center;
+      /* 居中对齐 */
+      background-color: transparent;
+      /* 背景透明 */
+    }
+
+    /* 当输入框获得焦点时的样式 */
+    .input-no-border:focus {
+      outline: none;
+      /* 去掉聚焦时的外边框 */
+      background-color: #f5f5f5;
+      /* 可选：修改聚焦时的背景颜色 */
+    }
+
+    .project-name-cell {
+      text-align: left;
+      padding-left: 10px;
+      /* 增加左边距 */
+      white-space: normal;
+      /* 允许换行 */
+      word-wrap: break-word;
+      /* 长单词自动换行 */
+      line-height: 1.3;
+      /* 设置行高以增加可读性 */
+    }
+
+    /* 确保表格单元格的按钮完全对齐 */
+    .layui-table td {
+      padding: 0 !important;
+      /* 移除表格单元格的默认内边距 */
+    }
+
+    .layui-table .dropdown-btn {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      line-height: normal;
+      padding: 0;
+      margin: 0;
+      border: none;
+      background-color: transparent;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+
+
+    .layui-table .dropdown-btn:hover {
+      background-color: #f2f2f2;
+    }
+
+    /* 自定义下拉菜单的样式 */
+    .layui-dropdown-menu {
+      text-align: center;
+      /* 水平居中 */
+    }
+
+    /* 确保下拉菜单项的文字居中 */
+    .layui-dropdown-menu li a {
+      display: flex;
+      /* 使用 flex 布局 */
+      justify-content: center;
+      /* 水平居中 */
+      align-items: center;
+      /* 垂直居中 */
+      height: 40px;
+      /* 确保高度一致 */
+      line-height: normal;
+      padding: 0;
+      /* 去掉多余内边距 */
+    }
+
+    /* 隐藏<input type="number">的上下箭头按钮 */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Firefox */
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+      body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow-x: hidden; /* 确保水平滚动条仅在需要时出现 */
+    }
+
+    .search-container {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 20px;
+    }
+
+    .search-item {
+      margin-right: 20px;
+      margin-bottom: 20px;
+    }
+
+    /* 使用媒体查询调整小屏幕的样式 */
+    @media (max-width: 768px) {
+      .search-item {
+        margin-right: 10px;
+      }
+
+      .header-add-btn {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="content-container">
+    <div class="search-container">
+      <div class="search-item">
+         <button type="button" id="addProjectBtn"
+          class="layui-btn layui-btn-primary"
+          style="margin-left: -20px; margin-right: 15px;"
+          onclick="">
+        新建项目
+        </button>
+        <select id="testgroupSelect" class="layui-select" aria-label="选择测试组">
+          <option value="">请选择测试组</option>
+          <option value="路由">路由</option>
+          <option value="交换">交换</option>
+          <option value="安全">安全</option>
+        </select>
+      </div>
+      <div class="search-item">
+        <select id="projectlevelSelect" class="layui-select" aria-label="选择项目级别">
+          <option value="">请选择项目级别</option>
+          <option value="重要">重要</option>
+          <option value="普通">普通</option>
+        </select>
+      </div>
+      <div class="search-item">
+        <select id="projectstatusSelect" class="layui-select" aria-label="选择项目状态">
+          <option value="">请选择项目状态</option>
+          <option value="进行中">进行中</option>
+          <option value="已完成">已完成</option>
+        </select>
+      </div>
+      <div class="search-item">
+        <input type="text" id="projectnameInput" placeholder="请输入项目名" class="layui-input" aria-label="项目名">
+      </div>
+      <div class="search-item">
+        <button id="searchBtn" class="layui-btn layui-btn-primary">搜索</button>
+      </div>
+      <div class="search-item">
+        <button id="resetBtn" class="layui-btn layui-btn-primary">重置</button>
+      </div>
+      <div class="search-item">
+        <button id="refreshAllBtn" class="layui-btn layui-btn-primary">刷新所有项目</button>
+      </div>
+    </div>
+
+    <div id="projectboard-container">
+      <table id="projectboard" lay-filter="projectboard"></table>
+    </div>
+  </div>
+
+  <div id="myModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <span class="close" aria-label="关闭">&times;</span>
+      <h3>新项目</h3>
+      <form id="addForm">
+         <!-- 新增的单选按钮 -->
+      <div class="data-source">
+        <label>
+          <input type="radio" name="dataSource" value="itest" checked> 从itest导入
+        </label>
+        <label>
+          <input type="radio" name="dataSource" value="manual"> 手动填写
+        </label>
+
+      </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalTestgroup" style="display: inline-block; width: 80px;">测试组:</label>
+          <select id="modalTestgroup" required style="display: inline-block; width: calc(100% - 75px);">
+            <option value="">请选择测试组</option>
+            <option value="路由">路由</option>
+            <option value="交换">交换</option>
+            <option value="安全">安全</option>
+          </select>
+        </div>
+          <!-- 动态切换部分 -->
+      <div class="manual-fields" style="display: none;">
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalProjectname" style="display: inline-block; width: 80px;">项目名:</label>
+          <input type="text" id="modalProjectname"  disabled required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalConversionFactor" style="display: inline-block; width: 80px;">项目系数:</label>
+          <input type="number" id="modalConversionFactor" step="0.01" disabled required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+      </div>
+
+      <div class="itest-fields">
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalTaskId" style="display: inline-block; width: 80px;">任务编号:</label>
+          <input type="text" id="modalTaskId" required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalTestRound" style="display: inline-block; width: 80px;">测试轮次:</label>
+          <input type="number" id="modalTestRound" required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+      </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalProjectlevel" style="display: inline-block; width: 80px;">项目级别:</label>
+          <select id="modalProjectlevel" required style="display: inline-block; width: calc(100% - 75px);">
+            <option value="">请选择项目级别</option>
+            <option value="重要">重要</option>
+            <option value="普通">普通</option>
+          </select>
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalExpectnum" style="display: inline-block; width: 80px;">预期问题数:</label>
+          <input type="number" id="modalExpectnum" required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalExpectdi" style="display: inline-block; width: 80px;">预期DI:</label>
+          <input type="number" id="modalExpectdi" step="0.01" required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+        <div  class="time-fields"  style="display: none;">
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalStartime" style="display: inline-block; width: 80px;">开始日期:</label>
+          <input type="date" id="modalStartime"  style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+          </div>
+        <button type="submit" style="margin-top: 10px;">提交</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Executor Modal -->
+  <div id="executorModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <span class="close-executor" aria-label="关闭执行人窗口">&times;</span>
+      <h3>新增执行人</h3>
+      <form id="addExecutorForm">
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalExecutorName" style="display: inline-block; width: 80px;">执行人姓名:</label>
+          <input type="text" id="modalExecutorName" required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalExecutorDays" style="display: inline-block; width: 80px;">投入天数:</label>
+          <input type="number" id="modalExecutorDays" required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalExecutorExpectedIssues" style="display: inline-block; width: 80px;">挑战问题数:</label>
+          <input type="number" id="modalExecutorExpectedIssues" required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label for="modalExecutorExpectedDI" style="display: inline-block; width: 80px;">挑战DI:</label>
+          <input type="number" id="modalExecutorExpectedDI" step="0.01" required style="display: inline-block; width: calc(100% - 90px);">
+        </div>
+        <input type="hidden" id="modalProjectID">
+        <button type="submit" style="margin-top: 10px;">提交</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 引入 jQuery 和 LayUI -->
+  <script src="{{ url_for('static', filename='jquery-3.6.0.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='src/layui.js') }}"></script>
+  <!-- 引入自定义脚本 -->
+  <script>
+document.querySelectorAll('input[name="dataSource"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    const isItest = e.target.value === 'itest';
+
+    // 切换显示字段
+    document.querySelector('.itest-fields').style.display = isItest ? 'block' : 'none';
+    document.querySelector('.manual-fields').style.display = isItest ? 'none' : 'block';
+    document.querySelector('.time-fields').style.display = isItest ? 'none' : 'block';
+
+    // 切换必填属性
+    document.querySelectorAll('.itest-fields input, .itest-fields select').forEach(el => {
+      el.disabled = !isItest;
+      el.required = isItest;
+    });
+    document.querySelectorAll('.manual-fields input, .manual-fields select').forEach(el => {
+      el.disabled = isItest;
+      el.required = !isItest;
+    });
+    document.querySelectorAll('.time-fields input, .time-fields select').forEach(el => {
+      el.disabled = isItest;
+      el.required = !isItest;
+    });
+
+  });
+});
+</script>
+  <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('modalExecutorName');
+    const daysInput = document.getElementById('modalExecutorDays');
+
+    // 监听两个输入框的blur事件
+    [nameInput, daysInput].forEach(input => {
+        input.addEventListener('blur', async function() {
+            if (nameInput.value && daysInput.value) {
+                try {
+                    const response = await fetch('/cal_target_di', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            executor_name: nameInput.value,
+                            days: daysInput.value
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    document.getElementById('modalExecutorExpectedIssues').value = data.expected_issues;
+                    document.getElementById('modalExecutorExpectedDI').value = data.expected_di;
+                } catch (error) {
+                    console.error('请求失败:', error);
+                }
+            }
+        });
+    });
+});
+</script>
+  <script>
+
+    let expandedRows = new Set(); // 使用 Set 存储展开行的项目 ID
+
+
+    var paginationInfo = {
+      page: 1, // 默认第一页
+      limit: 15 // 默认每页显示条数
+    };
+
+    //存储当前选中页
+    function onPageChange(newPage) {
+      localStorage.setItem('currentPage', newPage);
+      // 其他分页切换逻辑
+    }
+
+    // 恢复表格的当前选中行
+    function restoreTableState() {
+        const selectedRow = localStorage.getItem('selectedRow');
+        if (selectedRow !== null) {
+            $('table tr').eq(selectedRow).addClass('selected');
+        }
+    }
+
+    //缓存全部项目数据
+    const projectCache = (function () {
+      let cachedProjects = null; // 局部变量，外部无法直接访问
+
+      return {
+        get: function () {
+          return cachedProjects;
+        },
+        set: function (newData) {
+          cachedProjects = newData;
+        }
+      };
+    })();
+    // 获取特定 ID 的行数据
+    function getcachedProjectRowById(id) {
+      cachedProjects = projectCache.get();
+      for (let i = 0; i < cachedProjects.length; i++) {
+        if (cachedProjects[i].ID === id) {
+          return cachedProjects[i];
+        }
+      }
+      return null; // 如果没有找到匹配的 ID，返回 null
+    }
+    // 使用
+    //projectCache.set(projects); // 设置新的缓存数据
+    console.log(projectCache.get()); // 获取缓存数据
+
+    $(document).ready(function () {
+      layui.use(['table', 'laydate', 'layer', 'dropdown'], function () {
+        var table = layui.table;
+        var laydate = layui.laydate;
+        var layer = layui.layer;
+        var dropdown = layui.dropdown;
+        // 监听分页事件
+        table.on('page(projectboard)', function (obj) {
+          const newPage = obj.curr;
+          localStorage.setItem('currentPage', newPage); // 存储当前页
+        });
+        window.addEventListener('beforeunload', function () {
+          localStorage.removeItem('currentPage');
+        });
+        // 恢复分页状态
+        const storedPage = localStorage.getItem('currentPage');
+        const currentPage = storedPage ? parseInt(storedPage, 10) : 1;
+        paginationInfo.page = currentPage >= 1 ? currentPage : 1; // 确保页码有效
+
+        function fetchDataAndRenderTable() {
+          $.ajax({
+            url: '/projects',
+            method: 'GET',
+            success: function (data) {
+              if (Array.isArray(data) && data.length > 0) {
+                projectCache.set(data)
+                renderTable(data);
+              } else {
+                console.error('Data format is incorrect or empty');
+                layer.msg('数据库中尚未添加数据', { icon: 2, time: 2000 });
+                renderTable([]);
+              }
+            },
+            error: function () {
+              layer.msg('Failed to fetch data from server', { icon: 2, time: 2000 });
+              renderTable([]);
+            }
+          });
+        }
+
+        function renderTable(data) {
+          table.render({
+            elem: '#projectboard',
+            data: data,
+            page: true, // 启用分页
+            page: {
+              curr: paginationInfo.page, // 使用存储的当前页
+              limit: paginationInfo.limit
+            },
+            limit: 15, // 每页显示的条数
+            limits: [15, 25, 50, 100], // 可供选择的每页条数选项
+            cols: [[
+              {
+                field: 'expand', title: '<div class="header-add-btn-container"><div id="addBtn"> </div></div>', width: 100, templet: function () {
+                  return '<div class="expand-btn layui-icon layui-icon-right"></div>';
+                }
+              },
+              {
+                field: 'TestGroup', title: '<span class="header-tooltip" title="交换/路由/安全">测试组</span>', width: 110, templet: function (d) {
+                  return `<button class="layui-btn layui-btn-primary dropdown-btn" data-id="${d.ID}" data-type="testGroup">${d.TestGroup}</button>`;
+                }
+              },
+              {
+                field: 'ProjectName', title: '项目名', edit: 'text', templet: function (d) {
+                  return `<div style="position: absolute; top: 50%; transform: translateY(-50%)" class="project-name-cell">${d.ProjectName}</div>`;
+                }
+              },
+              { field: 'ConversionFactor', title: '<span class="header-tooltip" title="产品折算系数">项目系数</span>', width: 80, edit: 'text' },
+              {
+                field: 'ProjectLevel', title: '<span class="header-tooltip" title="普通/重要">项目级别</span>', width: 80, templet: function (d) {
+                  return `<button class="layui-btn layui-btn-primary dropdown-btn" data-id="${d.ID}" data-type="ProjectLevel">${d.ProjectLevel}</button>`;
+                }
+              },
+              { field: 'HeadCounts', title: '测试人数', width: 72 },
+              { field: 'ExpectedIssues', title: '<span class="header-tooltip" title="项目预期问题数\n(接口人手工填写)">预期问题数</span>', width: 85, edit: 'text' },
+              { field: 'ExpectedDI', title: '<span class="header-tooltip" title="项目预期DI\n(接口人手工填写)">预期DI</span>', width: 100, edit: 'text' },
+              { field: 'AverageIssues', title: '<span class="header-tooltip" title="预期问题均数">预期问题均数</span>', width: 100 },
+              { field: 'AverageDI', title: '<span class="header-tooltip" title="预期DI均值">预期DI均值</span>', width: 100 },
+              {
+                field: 'StartDate', title: '项目开始日期', width:120,  templet: function (d) {
+                  return `<input type="text" style="text-align: center" class="layui-input date-picker" data-id="${d.ID}" value="${d.StartDate}" />`;
+                }
+              },
+              {
+                field: 'Status', title: '项目状态', width: 100, templet: function (d) {
+                  return `<button class="layui-btn layui-btn-primary dropdown-btn" data-id="${d.ID}" data-type="status">${d.Status}</button>`;
+                }
+              },
+              {
+                field: 'operations', title: '操作', templet: function () {
+                  return '<button style="height: 30px; padding: 0 12px; margin-left: 12px; margin-right: 5px" class="layui-btn layui-btn-danger layui-btn-xs delete-btn">删除</button>' +
+                    '<button style="height: 30px; padding: 0 12px; margin-right: 12px" class="layui-btn layui-btn-normal layui-btn-xs add-executor-btn">新增执行人</button>' +
+                    '<button style="height: 30px; padding: 0 12px; margin-right: 12px" class="layui-btn layui-btn-normal layui-btn-xs refresh-data-btn">刷新</button>';
+                }
+              }
+            ]],
+            height: 'full-200', // 自动调整表格高度以适应窗口
+            done: function (res, curr, count) {
+              //console.log('table res:', res, 'table limit:', this.limit);
+              restoreTableState(); // 恢复选中的行
+              paginationInfo.page = curr;
+              paginationInfo.limit = this.limit;
+
+              // 为每一列（测试组）的按钮创建下拉菜单
+              $('.dropdown-btn').each(function () {
+                const id = $(this).data('id');
+                const type = $(this).data('type');
+
+                // 判断是哪个列的下拉菜单
+                if (type === 'testGroup') {
+                  dropdown.render({
+                    elem: this,
+                    align: 'center',
+                    data: [
+                      { title: '路由', id: 1 },
+                      { title: '交换', id: 2 },
+                      { title: '安全', id: 3 }
+                    ],
+                    click: function (obj) {
+                      updateTestGroup(id, obj.title);
+                      //layer.tips('选择了：' + obj.title, obj.elem, {tips: [1, '#5FB878']});
+                    }
+                  });
+                } else if (type === 'ProjectLevel') {
+                  dropdown.render({
+                    elem: this,
+                    align: 'center',
+                    data: [
+                      { title: '重要', id: 1 },
+                      { title: '普通', id: 2 },
+                    ],
+                    click: function (obj) {
+                      updateProjectLevel(id, obj.title);
+                      //   layer.tips('选择了：' + obj.title, obj.elem, {tips: [1, '#5FB878']});
+                    }
+                  });
+                } else if (type === 'status') {
+                  dropdown.render({
+                    elem: this,
+                    align: 'center',
+                    data: [
+                      { title: '进行中', id: 1 },
+                      { title: '已完成', id: 2 }
+                    ],
+                    click: function (obj) {
+                      updateProjectStatus(id, obj.title);
+                      //  layer.tips('选择了：' + obj.title, obj.elem, {tips: [1, '#5FB878']});
+                    }
+                  });
+                }
+              });
+            }
+          });
+
+
+          // 初始化时间控件
+          setTimeout(function () {
+            $('.date-picker').each(function () {
+              laydate.render({
+                elem: this,
+                type: 'date',
+                showClear: false,
+                trigger: 'click',
+                done: function (value, date, endDate) {
+                  var id = $(this.elem).data('id');
+                  updateStartDate(id, value);
+                }
+              });
+            });
+          }, 0);
+          // 更新项目的开始时间
+          function updateStartDate(id, value) {
+            //console.log('Updating start date for ID:', id, 'to', value);
+            // Send an AJAX request to update the start date
+            $.ajax({
+              url: '/update_project_start_date',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({ id: id, startDate: value }),
+              success: function () {
+                fetchDataAndRenderTable()
+                layer.msg('开始日期已更新', { icon: 1, time: 2000 });
+              },
+              error: function () {
+                layer.msg('更新开始日期失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          }
+
+          // 监听单元格编辑事件
+          table.on('edit(projectboard)', function (obj) {
+            var value = obj.value; // 得到修改后的值
+            var data = obj.data; // 得到所在行所有键值
+            var field = obj.field; // 得到字段
+            //layer.msg('[ID: '+ data.ID +'] ' + field + ' 字段更改值为：'+ value);
+
+            if (data.HeadCounts> 0) {
+			    //更新项目的问题均数
+                let newAverageIssues = Math.trunc(data.ExpectedIssues / data.HeadCounts);
+                updateProject(data.ID, 'AverageIssues', newAverageIssues);
+                //更新项目的DI均值
+                let newAverageDI = data.ExpectedDI / data.HeadCounts;
+                newAverageDI = newAverageDI.toFixed(2);
+                updateProject(data.ID, 'AverageDI', newAverageDI);
+				//更新项目每个执行人的问题达标与DI达标
+				$.ajax({
+                  url: `/executors/${data.ID}`,
+                  method: 'GET',
+                  success: function (executors) {
+                      cachedExecutors = executors; // 确保 cachedExecutors 在合适的作用域中声明
+
+                      //更新问题达标
+                      let IsIssuesOnTarget
+                      for (let i = 0; i < cachedExecutors.length; i++) {
+                        if (cachedExecutors[i].ActualIssues >= newAverageIssues) {
+                          IsIssuesOnTarget = 1
+                          updateExecutors(cachedExecutors[i].ID, 'IsIssuesOnTarget', IsIssuesOnTarget);
+                        } else {
+                          IsIssuesOnTarget = 0
+                          updateExecutors(cachedExecutors[i].ID, 'IsIssuesOnTarget', IsIssuesOnTarget);
+                        }
+                      }
+
+                      //更新DI达标
+                      let IsDIOnTarget
+                      for (let i = 0; i < cachedExecutors.length; i++) {
+                        if (cachedExecutors[i].ActualDI >= newAverageDI) {
+                          IsDIOnTarget = 1
+                          updateExecutors(cachedExecutors[i].ID, 'IsDIOnTarget', IsDIOnTarget);
+                        } else {
+                          IsDIOnTarget = 0
+                          updateExecutors(cachedExecutors[i].ID, 'IsDIOnTarget', IsDIOnTarget);
+                        }
+                      }
+				  }
+			  })
+            }
+            updateProject(data.ID, field, value)
+          });
+          //刷新项目数据
+          $('.layui-table-body').on('click', '.refresh-data-btn', function () {
+            var index = parseInt($(this).closest('tr').data('index'));
+            dataIndex = index + (paginationInfo.page - 1) * paginationInfo.limit;
+            var rowData = data[dataIndex];
+            var id = rowData.ID;
+            //封装检查逻辑
+            const updateTargetStatus = (executors, targetValue, fieldName) => {
+              const statusField = `Is${fieldName}OnTarget`;
+              const actualField = `Actual${fieldName}`;
+
+              executors.forEach(executor => {
+                const isOnTarget = executor[actualField] >= targetValue ? 1 : 0;
+                updateExecutors(executor.ID, statusField, isOnTarget);
+              });
+            };
+
+            $.ajax({
+              url: '/update_executors_data',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({
+                id: rowData.ID
+               }),
+              success: function () {
+                layer.msg('项目数据已更新', { icon: 1, time: 2000 });
+                // 获取执行人数据
+                $.ajax({
+                    url: `/executors/${id}`,
+                    method: 'GET',
+                    success: (executors) => {
+                        // 获取项目平均数据
+                        $.ajax({
+                            url: `/search_projects?ID=${id}`,
+                            method: 'GET',
+                            success: (project_info) => {
+                                if (!project_info || !project_info[0]) {
+                                    throw new Error('项目数据为空');
+                                }
+                                const { AverageDI, AverageIssues } = project_info[0];
+                                cachedExecutors = executors;
+
+                                // 更新达标状态
+                                updateTargetStatus(executors, AverageIssues, 'Issues');
+                                updateTargetStatus(executors, AverageDI, 'DI');
+                            },
+                            error: () => layer.msg('查询项目不存在', { icon: 2, time: 2000 })
+                        });
+                    },
+                    error: () => layer.msg('获取执行人数据失败', { icon: 2, time: 2000 })
+                });
+              },
+              error: function () {
+                layer.msg('手动创建项目不支持刷新', { icon: 2, time: 2000 });
+              }
+            });
+          });
+          //删除项目
+          $('.layui-table-body').on('click', '.delete-btn', function () {
+            var index = parseInt($(this).closest('tr').data('index'));
+            dataIndex = index + (paginationInfo.page - 1) * paginationInfo.limit;
+            var rowData = data[dataIndex];
+            layer.confirm('删除操作不能恢复，请确认是否删除？', { icon: 3, title: '确认删除' }, function (index) {
+              $.ajax({
+                url: '/delete_project',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ id: rowData.ID }),
+                success: function () {
+                  layer.msg('项目已删除', { icon: 1, time: 2000 });
+
+                  // 获取总记录数和每页显示数量
+                  cachedProjects = projectCache.get()
+                  var totalRecords = cachedProjects.length;
+                  totalRecords = totalRecords - 1
+                  var limitPerPage = paginationInfo.limit;
+                  var lastPage = Math.ceil(totalRecords / limitPerPage);
+                  console.error('lastPage',lastPage);
+                  // 刷新表格并跳转到最后一页
+                  table.reload('projectboard', {
+                    page: {
+                    curr: lastPage // 跳转到最后一页
+                    }
+                  });
+
+                  fetchDataAndRenderTable();
+                },
+                error: function () {
+                  layer.msg('删除项目失败', { icon: 2, time: 2000 });
+                }
+              });
+              layer.close(index);
+            });
+          });
+
+          //增加项目的执行人，会话框获取数据
+          $('.layui-table-body').on('click', '.add-executor-btn', function () {
+            document.getElementById('executorModal').style.display = 'flex';
+            var index = $(this).closest('tr').data('index');
+            //转换成全局索引
+            dataIndex = index + (paginationInfo.page - 1) * paginationInfo.limit;
+            var rowData = data[dataIndex];
+            $('#modalProjectID').val(rowData.ID);
+            $('#executorModal').show();
+          });
+
+          //项目新增执行人，提交执行
+          $('#addExecutorForm').off('submit').on('submit', function (event) {
+            event.preventDefault();
+            var executorData = {
+              executorName: $('#modalExecutorName').val().trim(),
+              days: parseFloat($('#modalExecutorDays').val().trim()),
+              expectedIssues: parseInt($('#modalExecutorExpectedIssues').val().trim(), 10),
+              expectedDI: parseFloat($('#modalExecutorExpectedDI').val().trim()),
+              actualIssues: '0',
+              actualDI: '0',
+              level1_issues: '0',
+              level2_issues: '0',
+              level3_issues: '0',
+              level4_issues: '0',
+              IsIssuesOnTarget: '0',
+              IsDIOnTarget: '0',
+              is_target_issues_on_target: '0',
+              is_target_di_on_target: '0',
+              projectID: parseInt($('#modalProjectID').val().trim(), 10)
+            };
+
+            $.ajax({
+              url: '/add_executor',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify(executorData),
+              success: function () {
+                increaseHeadCounts(executorData.projectID);
+                $('#executorModal').hide();
+                $.ajax({
+                  url: `/executors/${executorData.projectID}`,
+                  method: 'GET',
+                  success: function (executors) {
+                    cachedExecutors = executors; // 确保 cachedExecutors 在合适的作用域中声明
+                    //console.log('Executors details successfully fetched:', executors);
+                    //console.log('ProjectID:', executorData.projectID, 'cachedExecutors:', cachedExecutors);
+                    const cachedProject = getcachedProjectRowById(executorData.projectID);//获取当前项目的缓存数据
+                    if (cachedProject) {
+                      //更新项目问题均数
+                      let ExpectedIssues = cachedProject.ExpectedIssues;
+                      let ExecutorsNumber = cachedExecutors.length;
+                      let newAverageIssues;
+                      newAverageIssues = Math.trunc(ExpectedIssues / ExecutorsNumber);
+                      updateProject(executorData.projectID, 'AverageIssues', newAverageIssues);
+                      //更新项目的DI均值
+                      let newAverageDI = 0
+                      let ExpectedDI = cachedProject.ExpectedDI;
+                      newAverageDI = ExpectedDI / ExecutorsNumber;
+                      newAverageDI = newAverageDI.toFixed(2);
+                      updateProject(executorData.projectID, 'AverageDI', newAverageDI);
+
+                      //更新问题达标
+                      let IsIssuesOnTarget
+                      for (let i = 0; i < cachedExecutors.length; i++) {
+                        if (cachedExecutors[i].ActualIssues >= newAverageIssues) {
+                          IsIssuesOnTarget = 1
+                          updateExecutors(cachedExecutors[i].ID, 'IsIssuesOnTarget', IsIssuesOnTarget);
+                        } else {
+                          IsIssuesOnTarget = 0
+                          updateExecutors(cachedExecutors[i].ID, 'IsIssuesOnTarget', IsIssuesOnTarget);
+                        }
+                      }
+
+                      //更新DI达标
+                      let IsDIOnTarget
+                      for (let i = 0; i < cachedExecutors.length; i++) {
+                        if (cachedExecutors[i].ActualDI >= newAverageDI) {
+                          IsDIOnTarget = 1
+                          updateExecutors(cachedExecutors[i].ID, 'IsDIOnTarget', IsDIOnTarget);
+                        } else {
+                          IsDIOnTarget = 0
+                          updateExecutors(cachedExecutors[i].ID, 'IsDIOnTarget', IsDIOnTarget);
+                        }
+                      }
+                      layer.msg('执行人已成功添加', { icon: 1, time: 2000 });
+                    } else {
+                          console.log('No cached row found with the given ProjectID');
+                    }
+                  },
+                  error: function (xhr) {
+                    layer.msg('新增执行人后，更新项目全部执行人信息时出错', { icon: 0, time: 3000 });
+                  }
+                });
+              },
+              error: function (xhr) {
+                if (xhr.status === 409) {
+                  layer.msg('执行人已存在，请输入不同的姓名', { icon: 0, time: 3000 });
+                } else {
+                  layer.msg('添加执行人失败，请重试', { icon: 2, time: 2000 });
+                }
+              }
+            });
+          })
+
+
+          //展开项目详情，显示执行人列表
+          $('.layui-table-body').on('click', '.expand-btn', function () {
+            var tr = $(this).closest('tr'); // 获取当前行
+            var dataIndex = parseInt(tr.attr('data-index')); // 获取当前行的索引
+            console.log("tr.attr('data-index'):", dataIndex);
+            dataIndex = dataIndex + (paginationInfo.page - 1) * paginationInfo.limit;
+            var rowData = data[dataIndex]; // 获取当前行的数据（项目）
+            console.log('getproject indext:', {
+              dataIndex: dataIndex,
+              data: data,
+              rowData: rowData,
+              page: paginationInfo.page,
+              limit: paginationInfo.limit
+            });
+            var tbodySelector = tr.next().find('tbody'); // 找到下一个 tr 中的 tbody
+
+            if (tr.next().hasClass('expand-row')) {
+              // 如果已经展开，点击后收起子表
+              tr.next().remove();
+              $(this).removeClass('layui-icon-down').addClass('layui-icon-right');
+            } else {
+              // 如果未展开，点击后展开子表
+              $.ajax({
+                url: `/executors/${rowData.ID}`, // 根据行数据ID获取详情
+                method: 'GET',
+                success: function (executors) {
+                  if (executors.length === 0) {
+				    update_head_counts(rowData.ID,executors.length);
+                    layer.msg('请给项目添加执行人', { icon: 0, time: 2000 });
+                    return;
+                  }
+				  update_head_counts(rowData.ID,executors.length);
+                  // 构建子表的HTML结构
+                  var executorRows = executors.map(function (executor) {
+                    return `<tr>
+                              <td style="width: 110px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="text" value="${executor.ExecutorName}" class="child-table-name-input input-no-border"
+                                       data-executor-id="${executor.ID}" />
+                              </td>
+                              <td style="width: 110px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="number" value="${executor.Days}" data-field="Days" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" min="0" />
+                              </td>
+                              <td style="width: 90px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="number" value="${executor.ExpectedIssues}" data-field="ExpectedIssues" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" min="0" />
+                              </td>
+                              <td style="width: 80px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="number" step="0.01" value="${executor.ExpectedDI}" data-field="ExpectedDI" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" min="0" />
+                              </td>
+                              <td style="width: 85px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="number" value="${executor.ActualIssues}" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" min="0" readonly />
+                              </td>
+                              <td style="width: 85px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="number" value="${executor.Level1Issues}" data-field="Level1Issues" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" min="0" />
+                              </td>
+                              <td style="width: 85px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="number" value="${executor.Level2Issues}" data-field="Level2Issues" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" min="0" />
+                              </td>
+                              <td style="width: 85px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="number" value="${executor.Level3Issues}" data-field="Level3Issues" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" min="0" />
+                              </td>
+                              <td style="width: 81px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="number" value="${executor.Level4Issues}" data-field="Level4Issues" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" min="0" />
+                              </td>
+                              <td style="width: 81px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="number" step="0.01" value="${executor.ActualDI}" data-field="ActualDI" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" min="0" />
+                              </td>
+                              <td style="width: 73px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="text" value="${executor.IsIssuesOnTarget}" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" readonly />
+                              </td>
+                              <td style="width: 86px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="text" value="${executor.IsDIOnTarget}" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" readonly />
+                              </td>
+                              <td style="width: 101px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="text" value="${executor.IsTargetIssuesOnTarget}" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" readonly />
+                              </td>
+                              <td style="width: 101px; border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <input type="text" value="${executor.IsTargetDIOnTarget}" class="child-table-input input-no-border"
+                                       data-executor-id="${executor.ID}" readonly />
+                              </td>
+                              <td style="width: 61px; border: 1px solid #ddd; padding: 8px; text-align: center; white-space: nowrap;">
+                                <button style="height: 30px; padding: 0 8px; margin: 0 2px" class="layui-btn layui-btn-normal layui-btn-xs expecteddi-reset-btn" data-executor-id="${executor.ID}">同步基线挑战数据</button>
+                                <button style="height: 30px; padding: 0 8px; margin: 0 2px" class="layui-btn layui-btn-danger layui-btn-xs executor-delete-btn" data-executor-id="${executor.ID}">删除</button>
+                              </td>
+                            </tr>`;
+                  }).join('');
+                  // 将子表插入到主表格中
+                  var newRow = $(`
+                    <tr class="expand-row">
+                      <td colspan="13">
+                        <div style="background-color: #f2f2f2;">
+                          <table style="margin: 20px; border-collapse: collapse; border: 1px solid #ddd; table-layout: fixed;">
+                            <thead>
+                              <tr>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="执行人">执行人</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="ADCP15天 其余10天">投入天数</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center; color:red;" title="上一季度日均问题单数 * 投入天数\n由于2025 Q1没有数据，使用员工基线数据，即Q1日均DI = 员工基线日均DI，Q1日均问题单数 = 员工基线日均DI/0.7\nQ2及之后，日均DI由该季度参加的所有项目 总个人DI/总执行天数，日均问题数为总个人问题单数/总执行天数">挑战问题数</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center; color:red;" title="上一季度日均DI * 投入天数\n由于2025 Q1没有数据，使用员工基线数据，即Q1日均DI = 员工基线日均DI，Q1日均问题单数 = 员工基线日均DI/0.7\nQ2及之后，日均DI由该季度参加的所有项目 总个人DI/总执行天数，日均问题数为总个人问题单数/总执行天数">挑战DI</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="问题数">问题数</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="一级问题">一级问题</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="二级问题">二级问题</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="三级问题">三级问题</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="四级问题">四级问题</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="(一级问题数*10+二级问题数*3+三级问题数*1+四级问题数*0.5)*项目系数">DI值</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="由预期问题数/测试人数得到人均预期问题数，根据该值判断每人是否达标">问题达标</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="由项目预期DI/测试人数得到人均预期DI，根据该值判断每人是否达标">DI值达标</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="项目问题总数 >= 挑战问题数即达标，否则不达标">挑战问题达标</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;" title="项目DI >= 挑战DI即达标，否则不达标">挑战DI值达标</th>
+                                <th style="width: 122px; border: 1px solid #ddd; padding: 8px; text-align: center;">操作</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              ${executorRows}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  `);
+
+                  tr.after(newRow); // 将子表插入到当前行的后面
+                  $(this).removeClass('layui-icon-right').addClass('layui-icon-down'); // 切换展开图标
+                  // 处理输入框的文本和颜色
+                  const inputs = tr.next().find('.child-table-input');
+                  inputs.each(function () {
+                    const input = $(this);
+                    const value = input.val().toLowerCase();
+                    if (value === 'true') {
+                      input.val('是');
+                      input.css('color', 'green');
+                    } else if (value === 'false') {
+                      input.val('否');
+                      input.css('color', 'red');
+                    }
+                  });
+                  // 设置子表的选择器
+                  var tbodySelector = tr.next().find('tbody'); // 找到新插入行的 tbody
+                   // 生成统计行前，获取当前tbody元素
+                  const tbodyEl = tbodySelector[0];
+                  // 判断项目问题数和DI是否达标
+                  function updateCellValue(a, b) {
+                    const result = a >= b ? "是" : "否";
+                    const color = a >= b ? "green" : "red";
+                    return `<span style="color: ${color}">${result}</span>`;
+                  }
+                  // 计算当前子表指定列的总和
+                  function calculateSum(tbody, columnIndex) {
+                      let sum = 0;
+                      // 包含所有行（移除排除逻辑）
+                      const rows = tbody.querySelectorAll('tr');
+                      rows.forEach(row => {
+                          const cell = row.cells[columnIndex];
+                          // 同时兼容input和纯文本内容
+                          const input = cell.querySelector('input');
+                          let value = 0;
+                          if (input) {
+                              value = parseFloat(input.value) || 0;  // 从input取值
+                          } else {
+                              value = parseFloat(cell.textContent.trim()) || 0;  // 从文本取值
+                          }
+                          sum += value;
+                      });
+                      return sum.toFixed(2).replace(/\.?0+$/, '');
+                  }
+
+                  // 构建统计行HTML，传入正确的列索引
+                  const totalRow = `
+                  <tr style="background-color: #f5f5f5;">
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold;">总计</td>
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold;">${calculateSum(tbodyEl, 1)}</td> <!-- 目标问题数 -->
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold; color:red;">${calculateSum(tbodyEl, 2)}</td> <!-- 目标DI -->
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold; color:red;">${calculateSum(tbodyEl, 3)}</td> <!-- 问题数 -->
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold;">${calculateSum(tbodyEl, 4)}</td> <!-- 一级问题 -->
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold;">${calculateSum(tbodyEl, 5)}</td> <!-- 二级问题 -->
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold;">${calculateSum(tbodyEl, 6)}</td> <!-- 三级问题 -->
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold;">${calculateSum(tbodyEl, 7)}</td> <!-- 四级问题 -->
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold;">${calculateSum(tbodyEl, 8)}</td> <!-- 实际DI -->
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em; font-weight: bold;">${calculateSum(tbodyEl, 9)}</td>
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em;">${updateCellValue(calculateSum(tbodyEl, 4), rowData.ExpectedIssues)}</td>
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em;">${updateCellValue(calculateSum(tbodyEl, 9), rowData.ExpectedDI)}</td>
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em;">-</td>
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em;">-</td>
+                    <td style="width: 120px; border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 2.5em;">-</td>
+                  </tr>`;
+
+                  // 插入到当前子表的tbody末尾
+                  tbodyEl.insertAdjacentHTML('beforeend', totalRow);
+                },
+                error: function (xhr) {
+                  if (xhr.status === 404) {
+                    layer.msg('请给项目添加执行人', { icon: 0, time: 2000 });
+                  } else {
+                    layer.msg('获取执行人信息失败', { icon: 2, time: 2000 });
+                  }
+                }
+              });
+
+            }
+          });
+
+          // 重置按钮触发，重置期望DI是否被修改的状态
+          $(document).off('click', '.expecteddi-reset-btn').on('click', '.expecteddi-reset-btn', function () {
+            var executorId = $(this).data('executor-id');
+            layer.confirm(
+              '此操作会重置挑战DI与挑战问题单的修改状态，重新从itest获取数据，请确认！',
+              { icon: 3, title: '确认重置' },
+              function (index) {
+                let cachedRow;
+                $.ajax({
+                  url: `/executor/${executorId}`,
+                  method: 'GET',
+                  success: function (executor) {
+                    cachedRow = executor[0];
+                    let ProjectID = cachedRow.ProjectID;
+                    $.ajax({
+                      url: `/reset_expected_update`,
+                      method: 'POST',
+                      contentType: 'application/json',
+                      data: JSON.stringify({ projectID: ProjectID, executorID: executorId }),
+                      success: function (response) {
+                        layer.msg('状态已重置', { icon: 1, time: 2000 });
+                        $.ajax({
+                          url: `/update_executors_data`,
+                          method: 'POST',
+                          contentType: 'application/json',
+                          data: JSON.stringify({ id: ProjectID}),
+                          success: function (response) {
+                            layer.msg('项目已刷新', { icon: 1, time: 2000 });
+                          },
+                          error: function () {
+                            layer.msg('重置失败，请重试', { icon: 2, time: 2000 });
+                            layer.close(index);
+                          }
+                        });
+                        layer.close(index);
+                      },
+                      error: function () {
+                        layer.msg('重置失败，请重试', { icon: 2, time: 2000 });
+                        layer.close(index);
+                      }
+                    });
+                  },
+                  error: function () {
+                    layer.msg('获取执行人失败，请重试', { icon: 2, time: 2000 });
+                    layer.close(index);
+                  }
+                });
+              }
+            );
+          });
+
+          // 删除项目执行人，用户确认后执行
+          $(document).off('click', '.executor-delete-btn').on('click', '.executor-delete-btn', function () {
+            var executorId = $(this).data('executor-id');
+            console.log('删除项目执行人，用户确认后执行', {
+              executorId: executorId,
+            });
+            layer.confirm('删除操作不能恢复，请确认是否删除？', { icon: 3, title: '确认删除' }, function (index) {
+              let cachedRow
+              $.ajax({
+                url: `/executor/${executorId}`, // 使用模板字符串插入 executorId
+                method: 'GET',
+                success: function (executor) {
+                  cachedRow = executor[0];
+                  //console.log('Executor details successfully fetched:', executor);
+                  let ProjectID = cachedRow.ProjectID
+                  $.ajax({
+                    url: '/delete_executor',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ id: executorId }),
+                    success: function () {
+                      $.ajax({
+                        url: `/executors/${ProjectID}`,
+                        method: 'GET',
+                        success: function (executors) {
+                          let cachedExecutors = executors;
+                          const cachedProject = getcachedProjectRowById(ProjectID);//获取当前项目的缓存数据
+                          if (cachedProject) {
+                            let ExpectedIssues = cachedProject.ExpectedIssues;
+                            let ExecutorsNumber = cachedExecutors.length;
+                            //console.log("/executors/${ProjectID}返回结果",executors);
+                            //console.log('ExecutorsNumber',ExecutorsNumber);
+
+                            //更新项目问题均数
+                            let newAverageIssues;
+                            newAverageIssues = Math.trunc(ExpectedIssues / ExecutorsNumber);
+                            updateProject(ProjectID, 'AverageIssues', newAverageIssues);
+                            //更新项目的DI均值
+                            let newAverageDI = 0
+                            let ExpectedDI = cachedProject.ExpectedDI;
+                            newAverageDI = ExpectedDI / ExecutorsNumber;
+                            newAverageDI = newAverageDI.toFixed(2);
+                            updateProject(ProjectID, 'AverageDI', newAverageDI);
+
+
+                            //更新问题达标
+                            let IsIssuesOnTarget
+                            for (let i = 0; i < cachedExecutors.length; i++) {
+                              if (cachedExecutors[i].ActualIssues >= newAverageIssues) {
+                                IsIssuesOnTarget = 1
+                                updateExecutors(cachedExecutors[i].ID, 'IsIssuesOnTarget', IsIssuesOnTarget);
+                              } else {
+                                IsIssuesOnTarget = 0
+                                updateExecutors(cachedExecutors[i].ID, 'IsIssuesOnTarget', IsIssuesOnTarget);
+                              }
+                            }
+
+                            //更新DI达标
+                            let IsDIOnTarget
+                            for (let i = 0; i < cachedExecutors.length; i++) {
+                              if (cachedExecutors[i].ActualDI >= newAverageDI) {
+                                IsDIOnTarget = 1
+                                updateExecutors(cachedExecutors[i].ID, 'IsDIOnTarget', IsDIOnTarget);
+                              } else {
+                                IsDIOnTarget = 0
+                                updateExecutors(cachedExecutors[i].ID, 'IsDIOnTarget', IsDIOnTarget);
+                              }
+                            }
+                            decreaseHeadCounts(ProjectID)
+                            layer.msg('执行人已删除', { icon: 1, time: 2000 });
+                            layer.close(index);
+                          } else {
+                            console.log('No cached row found with the given ProjectID');
+                          }
+
+                        },
+                        error: function (xhr, status, error) {
+                            if (xhr.status === 404) {
+                                console.log('执行删除最后一个人代码');
+                                //更新项目问题均数
+                                updateProject(ProjectID, 'AverageIssues', 0);
+                                //更新项目的DI均值
+                                updateProject(ProjectID, 'AverageDI', 0);
+                            } else {
+                                console.error('An error occurred:', error);
+                            }
+                        }
+                      });
+                    },
+                  });
+                }
+              });
+            })
+          })
+        }
+          // 更新项目字段(一般方法)
+          updateProject = function (id, field, value) {
+            //console.log('Updating project for ID:', id, 'to', value);
+            $.ajax({
+              url: '/update_project',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({ id: id, column: field, value: value }),
+              success: function () {
+                layer.msg(`项目字段${field}已更新`, { icon: 1, time: 2000 }); // 动态显示字段名
+              },
+              error: function () {
+                layer.msg('项目字段已更新失败，请重试',{字段,field}, { icon: 2, time: 2000 });
+              }
+            });
+          };
+
+          // 更新项目级别
+          updateProjectLevel = function (id, value) {
+            //console.log('Updating project level for ID:', id, 'to', value);
+            $.ajax({
+              url: '/update_project_level',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({ id: id, projectLevel: value }),
+              success: function () {
+                layer.msg('项目级别已更新', { icon: 1, time: 2000 });
+              },
+              error: function () {
+                layer.msg('更新项目级别失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          };
+
+          // 更新项目状态
+          updateProjectStatus = function (id, value) {
+            //console.log('Updating project status for ID:', id, 'to', value);
+            $.ajax({
+              url: '/update_project_status',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({ id: id, status: value }),
+              success: function () {
+                layer.msg('项目状态已更新', { icon: 1, time: 2000 });
+              },
+              error: function () {
+                layer.msg('更新项目状态失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          };
+          //新增项目
+          $('#addForm').on('submit', function (event) {
+            event.preventDefault();
+            $('#myModal').hide();
+            // 显示提交等待提示
+            const submitIndex = layer.msg('正在创建项目...', {
+              icon: 16,
+              shade: 0.01,
+              time: 0
+            });
+
+            var formData = {
+              dataSource: document.querySelector('input[name="dataSource"]:checked').value,
+              testgroup: $('#modalTestgroup').val(),
+              projectlevel: $('#modalProjectlevel').val(),
+              headcounts: '0',
+              expectedissues: parseInt($('#modalExpectnum').val(), 10),
+              expecteddi: $('#modalExpectdi').val(),
+              AverageIssues: '',
+              AverageDI: '',
+            };
+            if (formData.dataSource === 'manual') {
+                formData.projectname = $('#modalProjectname').val();
+                formData.conversionFactor = $('#modalConversionFactor').val();
+                formData.startdate = $('#modalStartime').val();
+              } else {
+                formData.taskId = document.getElementById('modalTaskId').value;
+                formData.testRound = document.getElementById('modalTestRound').value;
+              }
+            $.ajax({
+              url: '/add_project',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify(formData),
+              success: function () {
+                layer.close(submitIndex);
+
+                // 获取总记录数和每页显示数量
+                cachedProjects = projectCache.get()
+                var totalRecords = cachedProjects.length;
+                totalRecords = totalRecords + 1
+                var limitPerPage = paginationInfo.limit;
+                var lastPage = Math.ceil(totalRecords / limitPerPage);
+                console.log('cachedProjects',cachedProjects);
+
+                // 刷新表格并跳转到最后一页
+                table.reload('projectboard', {
+                  page: {
+                  curr: 1 // 跳转到第一页
+                  }
+                });
+                fetchDataAndRenderTable();
+                layer.msg('项目已成功添加', { icon: 1, time: 2000 });
+              },
+              error: function (xhr) {
+                if (xhr.status === 409) {
+                  layer.msg('项目名称已存在，请输入不同的名称', { icon: 0, time: 3000 });
+                } else {
+                  layer.msg('添加项目失败，请重试', { icon: 2, time: 2000 });
+                }
+              }
+            });
+          });
+
+
+
+          //测试人数增加
+          function increaseHeadCounts(projectID) {
+            $.ajax({
+              url: '/increase_head_counts',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({ projectID: projectID }),
+              success: function () {
+                $('#executorModal').hide();
+                layer.msg('执行人已成功添加并更新项目测试人数', { icon: 1, time: 2000 });
+              },
+              error: function () {
+                layer.msg('更新项目测试人数失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          }
+
+          //测试人数减少
+          function decreaseHeadCounts(projectID) {
+            $.ajax({
+              url: '/decrease_head_counts',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({ projectID: projectID }),
+              success: function () {
+                $('#executorModal').hide();
+                layer.msg('执行人已成功删除并更新项目测试人数', { icon: 1, time: 2000 });
+              },
+              error: function () {
+                layer.msg('更新项目测试人数失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          }
+
+          //执行搜索
+          $('#searchBtn').on('click', function () {
+            var searchParams = {
+              testgroup: $('#testgroupSelect').val(),
+              projectlevel: $('#projectlevelSelect').val(),
+              projectstatus: $('#projectstatusSelect').val(),
+              projectname: $('#projectnameInput').val()
+            };
+
+            $.ajax({
+              url: '/search_projects',
+              method: 'GET',
+              data: searchParams,
+              success: function (data) {
+                renderTable(data);
+              },
+              error: function () {
+                layer.msg('搜索失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          });
+
+          //重置搜索按钮
+          $('#resetBtn').on('click', function () {
+            $('#testgroupSelect').val('');
+            $('#projectlevelSelect').val('');
+            $('#projectnameInput').val('');
+            $('#projectstatusSelect').val('');
+            fetchDataAndRenderTable();
+          });
+
+          $(document).on('click', '#addProjectBtn', function () {
+            document.getElementById('myModal').style.display = 'flex';
+            $('#myModal').show();
+          });
+
+          $('.close').on('click', function () {
+            $('#myModal').hide();
+          });
+
+          $('.close-executor').on('click', function () {
+            $('#executorModal').hide();
+          });
+
+          /* 监听失去焦点事件*/
+          $(document).on('blur', '.child-table-input', function () {
+            console.log('Blur event triggered');
+            handleInputUpdate($(this)); // 调用更新逻辑
+          });
+
+          // 监听按下回车键事件
+          $(document).on('keydown', '.child-table-input', function (event) {
+            if (event.key === 'Enter') {
+              console.log('Enter key pressed');
+              handleInputUpdate($(this)); // 调用更新逻辑
+              event.preventDefault(); // 阻止默认行为（如表单提交）
+            }
+          });
+
+          // 更新逻辑封装为一个函数
+          function handleInputUpdate(inputElement) {
+            var row = inputElement.closest('tr'); // 获取当前输入框所在的行
+
+            // 使用 data-field 属性选择输入框并获取值
+            var daysInput = row.find('input[data-field="Days"]').val();
+			var level1Input = row.find('input[data-field="Level1Issues"]').val();
+			var level2Input = row.find('input[data-field="Level2Issues"]').val();
+			var level3Input = row.find('input[data-field="Level3Issues"]').val();
+			var level4Input = row.find('input[data-field="Level4Issues"]').val();
+			var expectedIssuesInput = row.find('input[data-field="ExpectedIssues"]').val();
+			var expectedDIInput = row.find('input[data-field="ExpectedDI"]').val();
+			var actualDIInput = row.find('input[data-field="ActualDI"]').val();
+
+			// Check if any input is empty or invalid
+			if (!daysInput || !level1Input || !level2Input || !level3Input || !level4Input ||
+				!expectedIssuesInput || !expectedDIInput || !actualDIInput) {
+				console.log("One or more inputs are missing or invalid. Exiting function.");
+				return;
+			}
+
+            var days = parseFloat(daysInput);
+
+			var level1 = parseInt(level1Input);
+			var level2 = parseInt(level2Input);
+			var level3 = parseInt(level3Input);
+			var level4 = parseInt(level4Input);
+			var ExpectedIssues = parseInt(expectedIssuesInput);
+			var ExpectedDI = parseFloat(expectedDIInput);
+			var inputActualDI = parseFloat(actualDIInput);
+            // 计算问题数总和
+            var newActualIssues = level1 + level2 + level3 + level4;
+            // 获取执行人 ID
+            var executorId = row.find('input[data-executor-id]').data('executor-id');
+            updateExecutors(executorId, 'Days', days);
+            // 实时更新页面问题总数显示
+            const totalIssues = document.querySelector(`input[data-executor-id="${executorId}"][readonly]`);
+            // 更新值为新获取的值
+            totalIssues.value = newActualIssues;
+            var cachedRow; // 确保在函数外部声明，以便在回调中访问
+            $.ajax({
+              url: `/executor/${executorId}`, // 使用模板字符串插入 executorId
+              method: 'GET',
+              success: function (executor) {
+                cachedRow = executor[0];
+                //console.log('Executor details successfully fetched:', executor);
+                if (cachedRow) {
+                  if (cachedRow.Level1Issues !== level1 || cachedRow.Level2Issues !== level2 || cachedRow.Level3Issues !== level3 || cachedRow.Level4Issues !== level4) {
+                    // 更新执行人问题数据到后端
+                    if (typeof updateExecutorIssues === 'function') {
+                      updateExecutorIssues({
+                        executorId: executorId,
+                        level1Issues: level1,
+                        level2Issues: level2,
+                        level3Issues: level3,
+                        level4Issues: level4,
+                        actualIssues: newActualIssues
+                      });
+                    } else {
+                      console.error('updateExecutorIssues function is not defined');
+                    }
+                    let ProjectID = cachedRow.ProjectID;
+                    // 检查 ProjectID 是否为 undefined
+                    if (typeof ProjectID === 'undefined') {
+                      console.error('ProjectID is undefined. Check the assignment of cachedRow.');
+                    } else {
+                      console.log('ProjectID is:', ProjectID);
+                    }
+                    let cachedExecutors;
+                    $.ajax({
+                      url: `/executors/${cachedRow.ProjectID}`,
+                      method: 'GET',
+                      success: function (executors) {
+                        cachedExecutors = executors; // 确保 cachedExecutors 在合适的作用域中声明
+                        //console.log('Executors details successfully fetched:', executors);
+                        //console.log('ProjectID:', ProjectID, 'cachedExecutors:', cachedExecutors);
+                        //更新当前执行人DI
+                        const cachedProject = getcachedProjectRowById(ProjectID);
+                        var newActualDI = 0;
+                        if (cachedProject) {
+                          let ConversionFactor = cachedProject.ConversionFactor;
+                          newActualDI = (level1 * 10 + level2 * 3 + level3 * 1 + level4 * 0.5) * ConversionFactor;
+                          newActualDI = parseFloat(newActualDI.toFixed(2));
+                          // 在页面实时更新DI值
+                          const actualDIInput = document.querySelector(`input[data-executor-id="${executorId}"][data-field="ActualDI"]`);
+                          actualDIInput.value = newActualDI;
+                          updateExecutors(executorId, 'ActualDI', newActualDI);
+                        } else {
+                          console.log('No cached row found with the given ProjectID');
+                        }
+                        //更新问题达标
+                        let IsIssuesOnTarget = 0
+                        let IsDIOnTarget = 0
+                        let IsTargetIssuesOnTarget = 0
+                        let IsTargetDIOnTarget = 0
+                        for (let i = 0; i < cachedExecutors.length; i++) {
+                          let ActualIssues
+                          const currentExecutor = cachedExecutors[i];
+                          const currentExecutorId = currentExecutor.ID; // 当前执行人的ID
+                          if (cachedExecutors[i].ID === executorId) {
+                            ActualIssues = newActualIssues
+                          } else {
+                            ActualIssues = cachedExecutors[i].ActualIssues
+                          }
+                          if (ActualIssues >= cachedProject.AverageIssues) {
+                            IsIssuesOnTarget = 1
+                            const getIsIssuesOnTarget = document.querySelector(`tr > td:nth-child(11) input[data-executor-id="${currentExecutorId}"]`);
+                            getIsIssuesOnTarget.value = '是';
+                            $(getIsIssuesOnTarget).css('color', 'green');
+                            updateExecutors(cachedExecutors[i].ID, 'IsIssuesOnTarget', IsIssuesOnTarget);
+                          } else {
+                            IsIssuesOnTarget = 0
+                            const getIsIssuesOnTarget = document.querySelector(`tr > td:nth-child(11) input[data-executor-id="${currentExecutorId}"]`);
+                            getIsIssuesOnTarget.value = '否';
+                            $(getIsIssuesOnTarget).css('color', 'red');
+                            updateExecutors(cachedExecutors[i].ID, 'IsIssuesOnTarget', IsIssuesOnTarget);
+
+                          }
+                        }
+
+                        //更新DI达标
+                        for (let i = 0; i < cachedExecutors.length; i++) {
+                          let ActualDI;
+                          const currentExecutor = cachedExecutors[i];
+                          const currentExecutorId = currentExecutor.ID; // 当前执行人的ID
+                          if (cachedExecutors[i].ID === executorId) {
+                            ActualDI = newActualDI
+                          } else {
+                            ActualDI = cachedExecutors[i].ActualDI
+                          }
+                          if (ActualDI >= cachedProject.AverageDI) {
+                            IsDIOnTarget = 1
+                            const getIsDIOnTarget = document.querySelector(`tr > td:nth-child(11) input[data-executor-id="${currentExecutorId}"]`);
+                            getIsDIOnTarget.value = '是';
+                            $(getIsDIOnTarget).css('color', 'green');
+                            updateExecutors(cachedExecutors[i].ID, 'IsDIOnTarget', IsDIOnTarget);
+                          } else {
+                            IsDIOnTarget = 0
+                            const getIsDIOnTarget = document.querySelector(`tr > td:nth-child(11) input[data-executor-id="${currentExecutorId}"]`);
+                            getIsDIOnTarget.value = '否';
+                            $(getIsDIOnTarget).css('color', 'red');
+                            updateExecutors(cachedExecutors[i].ID, 'IsDIOnTarget', IsDIOnTarget);
+                          }
+                        }
+
+                        //更新目标问题达标
+                        if (newActualIssues >= cachedRow.ExpectedIssues) {
+                          IsTargetIssuesOnTarget = 1
+                          const getIsTargetIssuesOnTarget = document.querySelector(`tr > td:nth-child(13) input[data-executor-id="${executorId}"]`);
+                            getIsTargetIssuesOnTarget.value = '是';
+                            $(getIsTargetIssuesOnTarget).css('color', 'green');
+                          updateExecutors(executorId, 'IsTargetIssuesOnTarget', IsTargetIssuesOnTarget);
+                        } else {
+                          const getIsTargetIssuesOnTarget = document.querySelector(`tr > td:nth-child(13) input[data-executor-id="${executorId}"]`);
+                            getIsTargetIssuesOnTarget.value = '否';
+                            $(getIsTargetIssuesOnTarget).css('color', 'red');
+                          updateExecutors(executorId, 'IsTargetIssuesOnTarget', IsTargetIssuesOnTarget);
+                        }
+                        //更新目标DI达标
+                        if (newActualDI >= cachedRow.ExpectedDI) {
+                          IsTargetDIOnTarget = 1
+                          const getIsTargetDIOnTarget = document.querySelector(`tr > td:nth-child(14) input[data-executor-id="${executorId}"]`);
+                            getIsTargetDIOnTarget.value = '是';
+                            $(getIsTargetDIOnTarget).css('color', 'green');
+                          updateExecutors(executorId, 'IsTargetDIOnTarget', IsTargetDIOnTarget);
+                        } else {
+                          const getIsTargetDIOnTarget = document.querySelector(`tr > td:nth-child(14) input[data-executor-id="${executorId}"]`);
+                            getIsTargetDIOnTarget.value = '否';
+                            $(getIsTargetDIOnTarget).css('color', 'red');
+                          updateExecutors(executorId, 'IsTargetDIOnTarget', IsTargetDIOnTarget);
+                        }
+                      },
+                      error: function (jqXHR, textStatus, errorThrown) {
+                        console.error('Error fetching executors details:', textStatus, errorThrown);
+                      }
+                    });
+                  }
+                  //修改执行人预期问题数和预期DI
+                  if (cachedRow.ExpectedIssues !== ExpectedIssues || cachedRow.ExpectedDI !== ExpectedDI) {
+                    updateExecutors(executorId, 'ExpectedIssues', ExpectedIssues);
+                    updateExecutors(executorId, 'ExpectedDI', ExpectedDI);
+
+                    // 发送请求记录预期值修改状态
+                    $.ajax({
+                        url: '/record_expected_update',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            projectID: cachedRow.ProjectID,
+                            executorID: executorId,
+                            updateExpected: 1
+                        }),
+                        success: function() {
+                            console.log('预期值修改状态已记录');
+                        },
+                        error: function() {
+                            console.error('记录预期值修改状态失败');
+                        }
+                    });
+
+                    //更新预期目标问题达标
+                    let IsTargetIssuesOnTarget = 0
+                    if (cachedRow.ActualIssues >= ExpectedIssues) {
+                      IsTargetIssuesOnTarget = 1
+                      updateExecutors(executorId, 'IsTargetIssuesOnTarget', IsTargetIssuesOnTarget);
+                    } else {
+                      IsTargetIssuesOnTarget = 0
+                      updateExecutors(executorId, 'IsTargetIssuesOnTarget', IsTargetIssuesOnTarget);
+                    }
+                    //更新目标DI达标
+                    let IsTargetDIOnTarget = 0
+                    if (cachedRow.ActualDI >= ExpectedDI) {
+                      IsTargetDIOnTarget = 1
+                      updateExecutors(executorId, 'IsTargetDIOnTarget', IsTargetDIOnTarget);
+                    } else {
+                      IsTargetDIOnTarget = 0
+                      updateExecutors(executorId, 'IsTargetDIOnTarget', IsTargetDIOnTarget);
+                    }
+                  }
+                  //手工修改执行人的实际DI
+                  if (cachedRow.ActualDI !== inputActualDI) {
+				    console.error("手工修改执行人的实际DI:inputActualDI", inputActualDI);
+
+                    updateExecutors(executorId, 'ActualDI', inputActualDI);
+                    // 缓存及时更新
+                    cachedRow.ActualDI = inputActualDI;
+                    //更新目标DI达标
+                    let IsTargetDIOnTarget = 0
+                    if (inputActualDI >= cachedRow.ExpectedDI) {
+                      IsTargetDIOnTarget = 1
+                      updateExecutors(executorId, 'IsTargetDIOnTarget', IsTargetDIOnTarget);
+                    } else {
+                      IsTargetDIOnTarget = 0
+                      updateExecutors(executorId, 'IsTargetDIOnTarget', IsTargetDIOnTarget);
+                    }
+					//更新DI达标
+					const cachedProject = getcachedProjectRowById(cachedRow.ProjectID);
+					let IsDIOnTarget = 0
+					if (cachedProject) {
+					  if (inputActualDI >= cachedProject.AverageDI){
+					    IsDIOnTarget = 1
+					    updateExecutors(executorId, 'IsDIOnTarget', IsDIOnTarget);
+					  } else {
+					    IsDIOnTarget = 0
+					    updateExecutors(executorId, 'IsDIOnTarget', IsDIOnTarget);
+					  }
+
+					} else {
+					  console.log('No cached row found with the given ProjectID');
+					}
+
+
+                  }
+
+                }
+              },
+              error: function (jqXHR, textStatus, errorThrown) {
+                console.error('Error fetching executor details:', textStatus, errorThrown);
+              },
+              error: function (jqXHR, textStatus, errorThrown) {
+                console.error('Error fetching executor details:', textStatus, errorThrown);
+              }
+            });
+
+          }
+
+
+          // 更新执行人字段(一般方法)
+          updateExecutors = function (id, field, value) {
+
+            //console.log('Updating Executors for ID:', id, 'to', value);
+            $.ajax({
+              url: '/update_executor',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({ id: id, column: field, value: value }),
+              success: function () {
+                layer.msg('执行人相关字段已更新', { icon: 1, time: 2000 });
+              },
+              error: function () {
+                layer.msg('更新执行人相关字段失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          };
+          // 定义更新执行人问题数的 AJAX 请求
+          function updateExecutorIssues(data) {
+           // console.log('Updating executor issues:', data);
+            $.ajax({
+              url: '/update_executor_issues', // 后端 API 路径
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify(data), // 发送所有字段到后端
+              success: function () {
+                layer.msg('问题数已更新', { icon: 1, time: 2000 });
+                var rowDataID = parseInt(data.executorId, 10); // 确保值为整数
+              },
+              error: function () {
+                layer.msg('问题数更新失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          }
+
+          fetchDataAndRenderTable();
+          // 更新测试组的函数
+          function updateTestGroup(id, value) {
+            //console.log(`更新测试组 - 行ID: ${id}, 新值: ${value}`);
+            // 在这里处理 TestGroup 的更改逻辑
+            $.ajax({
+              url: '/update_test_group',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({ id: id, testGroup: value }),
+              success: function () {
+                layer.msg('测试组已更新', { icon: 1, time: 2000 });
+                fetchDataAndRenderTable()
+              },
+              error: function () {
+                layer.msg('更新测试组失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          }
+          // 更新项目的执行人数的函数
+          function update_head_counts(projectID, count) {
+            //console.log(`更新项目的执行人数 - 行ID: ${projectID}, 新值: ${count}`);
+            // 在这里处理 HeadCounts 的更改逻辑
+            $.ajax({
+              url: '/update_head_counts',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({ projectID: projectID, count: count }),
+              success: function () {
+              //  layer.msg('测试执行人数已更新', { icon: 1, time: 2000 });
+              },
+              error: function () {
+                layer.msg('更新测试执行人数失败，请重试', { icon: 2, time: 2000 });
+              }
+            });
+          }
+      });
+    });
+
+    // 刷新所有项目按钮点击事件
+    $('#refreshAllBtn').on('click', function() {
+      layer.confirm('确定要刷新所有项目数据吗？此操作可能需要一些时间', {icon: 3, title: '确认刷新'}, function(index) {
+        layer.load(1, {shade: [0.1,'#fff']}); // 显示加载动画
+<!--        // 获取所有项目ID的正确方式-->
+<!--        const projects = projectCache.get();-->
+<!--        const projectIDs = projects ? projects.map(project => project.ID) : [];-->
+
+<!--        console.log('准备刷新的项目ID:', projectIDs); // 调试用-->
+
+        $.ajax({
+          url: '/refresh_all_projects',
+          method: 'POST',
+<!--          data: JSON.stringify({ projectIDs: projectIDs }),-->
+          success: function() {
+            layer.closeAll();
+            layer.msg('所有项目数据已刷新', {icon: 1, time: 2000});
+<!--            fetchDataAndRenderTable(); // 重新加载数据-->
+            layui.table.reload('projectboard');
+          },
+          error: function() {
+            layer.closeAll();
+            layer.msg('刷新失败，请重试', {icon: 2, time: 2000});
+          }
+        });
+
+        layer.close(index);
+      });
+    });
+
+  </script>
+</body>
+
+</html>

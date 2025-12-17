@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="{{ url_for('static', filename='js/plotly-latest.min.js') }}"></script>
+    <title>Bonus Distribution</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5; /* 浅灰色背景 */
+            color: #333333; /* 深灰色字体 */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* 隐藏溢出 */
+        }
+
+        h1 {
+            color: #333333; /* 深灰色字体 */
+            margin: 0;
+            padding: 20px 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .chart-container {
+            display: flex;
+            flex: 1;
+            position: relative; /* 为子元素的绝对定位提供参考 */
+            background-color: #ffffff; /* 白色背景 */
+            padding: 20px; /* 增加内边距 */
+            gap: 20px; /* 增加图表之间的间距 */
+        }
+
+        #chart, #barchart {
+            flex: 1;
+            height: 100%; /* 填满高度 */
+            background-color: #ffffff; /* 白色背景 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
+            border-radius: 8px; /* 添加圆角 */
+        }
+
+        #barchart {
+            position: relative;
+        }
+
+        #top5 {
+            position: absolute;
+            top: 20px; /* 调整位置 */
+            right: 20px; /* 调整位置 */
+            width: 25%; /* 减小宽度 */
+            padding: 20px; /* 增加内边距 */
+            background-color: #ffffff; /* 白色背景 */
+            border-radius: 10px; /* 添加圆角 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
+            z-index: 10; /* 确保 Top 5 在柱状图上方 */
+        }
+
+        #top5 h2 {
+            font-size: 20px; /* 增大字体 */
+            margin: 0 0 15px 0;
+            color: #ffa600; /* 橙色字体 */
+        }
+
+        #top5 ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #top5 li {
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px; /* 增大字体 */
+            background-color: #f9f9f9; /* 浅灰色背景 */
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        #top5 li::before {
+            content: '★'; /* 使用 Unicode 星星字符 */
+            margin-right: 8px;
+            color: #ffa600; /* 星星的颜色 */
+        }
+    </style>
+</head>
+<body>
+    <h1>绩效奖金池</h1>
+    <div class="chart-container">
+        <div id="chart"></div>
+        <div id="barchart">
+            <div id="top5">
+                <h2>Top 5</h2>
+                <ul id="top5-list">
+                    <!-- Top 5 items will be appended here by JavaScript -->
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script>
+      // 使用 Jinja2 模板语法插入数据
+      var labels = {{ labels | tojson }};
+      var values = {{ values | tojson }};
+
+      // 过滤掉不需要显示的员工（例如，最下面的员工）
+      var filteredLabels = labels.slice(0, -1); // 去掉最后一个员工
+      var filteredValues = values.slice(0, -1); // 去掉最后一个员工的值
+
+      // 饼图数据
+      var pieData = [{
+        values: values,
+        labels: labels,
+        type: 'pie',
+        textinfo: 'label+percent',
+        textposition: 'inside',
+        textfont: {
+          color: '#333333', /* 深灰色字体 */
+          size: 14
+        },
+        marker: {
+          colors: ['#ff6361', '#bc5090', '#ffa600', '#58508d', '#003f5c'],
+          line: {
+            color: '#ffffff', /* 白色边框 */
+            width: 2
+          }
+        },
+        hole: 0.4
+      }];
+
+      var pieLayout = {
+        title: {
+          text: '奖金分配',
+          font: {
+            size: 20,
+            color: '#333333' /* 深灰色字体 */
+          }
+        },
+        paper_bgcolor: '#ffffff', /* 白色背景 */
+        plot_bgcolor: '#ffffff', /* 白色背景 */
+        font: {
+          color: '#333333' /* 深灰色字体 */
+        },
+        showlegend: false,
+        margin: { l: 50, r: 50, b: 50, t: 50 } // 调整边距
+      };
+
+      var pieConfig = {
+        displayModeBar: false
+      };
+
+      Plotly.newPlot('chart', pieData, pieLayout, pieConfig);
+
+      // 柱状图数据
+      var barData = [{
+        x: filteredLabels, // 使用过滤后的标签
+        y: filteredValues, // 使用过滤后的值
+        type: 'bar',
+        marker: {
+          color: '#ffa600' /* 橙色柱状图 */
+        },
+        text: filteredValues.map(v => v.toFixed(2)), // 显示具体数值
+        textposition: 'auto' // 自动调整文本位置
+      }];
+
+      var barLayout = {
+        title: {
+          text: '绩效排名',
+          font: {
+            size: 20,
+            color: '#333333' /* 深灰色字体 */
+          }
+        },
+        paper_bgcolor: '#ffffff', /* 白色背景 */
+        plot_bgcolor: '#ffffff', /* 白色背景 */
+        font: {
+          color: '#333333' /* 深灰色字体 */
+        },
+        xaxis: {
+          title: {
+            text: '员工',
+            font: {
+              color: '#333333' /* 深灰色字体 */
+            }
+          },
+          tickangle: -45, // 倾斜 x 轴标签
+          automargin: true // 自动调整边距
+        },
+        yaxis: {
+          title: {
+            text: '绩效',
+            font: {
+              color: '#333333' /* 深灰色字体 */
+            }
+          }
+        },
+        margin: { l: 50, r: 200, b: 100, t: 50 } // 增加右侧边距，避免遮挡
+      };
+
+      var barConfig = {
+        displayModeBar: false
+      };
+
+      Plotly.newPlot('barchart', barData, barLayout, barConfig);
+
+      // 生成Top 5列表
+      function generateTop5(labels, values) {
+        var data = labels.map((label, index) => {
+          return { label: label, value: values[index] };
+        });
+
+        data.sort((a, b) => b.value - a.value);
+
+        var top5 = data.slice(0, 5);
+
+        var top5List = document.getElementById('top5-list');
+        top5List.innerHTML = '';
+
+        top5.forEach(item => {
+          var listItem = document.createElement('li');
+          listItem.textContent = `${item.label}: ${item.value}`;
+          top5List.appendChild(listItem);
+        });
+      }
+
+      generateTop5(labels, values);
+    </script>
+</body>
+</html>

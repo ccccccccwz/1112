@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>项目绩效管理</title>
+  <link href="{{ url_for('static', filename='src/css/layui.css') }}" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #409EFF;
+      --success-color: #67C23A;
+      --warning-color: #E6A23C;
+      --danger-color: #F56C6C;
+      --info-color: #909399;
+      --bg-color: #f8f9fa;
+    }
+
+    body {
+      background: var(--bg-color);
+      color: #333;
+      font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    .content-container {
+      padding: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .search-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .search-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .layui-select, .layui-input {
+      border-radius: 4px;
+      transition: all 0.3s;
+    }
+
+    .layui-btn-primary {
+      border-color: #dcdfe6;
+      color: #606266;
+    }
+
+    .layui-btn-primary:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    #projectboard-container {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+
+    .layui-table {
+      border-radius: 8px;
+    }
+
+    .layui-table thead tr {
+      background-color: #f8f8f9;
+    }
+
+    .layui-table th {
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    .layui-table td {
+      transition: background 0.3s;
+    }
+
+    .layui-table tr:hover td {
+      background: #f5f7fa !important;
+    }
+
+    .dropdown-btn {
+      width: 100%;
+      padding: 5px 0;
+      border-radius: 4px;
+    }
+
+    .project-name-cell {
+      font-weight: 500;
+      color: #34495e;
+    }
+
+    .expand-btn {
+      color: var(--primary-color);
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .expand-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .layui-icon-down {
+      transform: rotate(90deg);
+    }
+
+    .child-table {
+      background: #fafafa;
+      border-left: 3px solid var(--primary-color);
+    }
+
+    .child-table th {
+      background: #f0f4f8 !important;
+    }
+
+    .modal-content {
+      border-radius: 12px;
+      padding: 25px;
+    }
+
+    .form-group label {
+      color: #5e6d82;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .search-container {
+        padding: 15px;
+      }
+
+      .search-item {
+        width: 100%;
+      }
+
+      .layui-table {
+        font-size: 14px;
+      }
+    }
+
+    /* 新增渐变按钮样式 */
+    .gradient-btn {
+      background: linear-gradient(45deg, #409EFF, #66b3ff);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      padding: 8px 20px;
+      transition: all 0.3s;
+    }
+
+    .gradient-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+    }
+
+    /* 状态标签样式 */
+    .status-tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-ongoing {
+      background: #e8f4ff;
+      color: var(--primary-color);
+    }
+
+    .status-completed {
+      background: #e8ffe8;
+      color: var(--success-color);
+    }
+
+    /* 进度条样式 */
+    .progress-bar {
+      height: 8px;
+      background: #ebeef5;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary-color);
+      transition: width 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <!-- 原有HTML结构保持不变，主要修改样式 -->
+  <div class="content-container">
+    <div class="search-container">
+      <!-- 搜索项样式已优化 -->
+      <button class="layui-btn gradient-btn" onclick="parent.window.location.href='/'">返回首页</button>
+      <!-- 其他搜索项... -->
+    </div>
+
+    <div id="projectboard-container">
+      <table id="projectboard" lay-filter="projectboard"></table>
+    </div>
+  </div>
+
+  <!-- 模态框内容 -->
+  <div id="myModal" class="modal">
+    <div class="modal-content">
+      <!-- 表单样式优化 -->
+      <form id="addForm" class="layui-form">
+        <div class="form-group">
+          <label>测试组</label>
+          <select class="layui-input" style="width: 100%">
+            <!-- 选项... -->
+          </select>
+        </div>
+        <!-- 其他表单元素... -->
+        <button type="submit" class="gradient-btn">提交</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 在JS中添加简单的动画效果
+    document.querySelectorAll('.dropdown-btn').forEach(btn => {
+      btn.addEventListener('mouseenter', () => {
+        btn.style.transform = 'translateY(-2px)';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = 'none';
+      });
+    });
+
+    // 添加表格行点击效果
+    document.querySelectorAll('.layui-table tr').forEach(row => {
+      row.addEventListener('click', () => {
+        document.querySelectorAll('.layui-table tr').forEach(r => r.classList.remove('selected'));
+        row.classList.add('selected');
+      });
+    });
+  </script>
+</body>
+</html>

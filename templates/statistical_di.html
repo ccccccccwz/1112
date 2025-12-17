@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>项目绩效管理</title>
+  <link href="{{ url_for('static', filename='src/css/layui.css') }}" rel="stylesheet">
+  <style>
+    .search-box { margin-bottom: 15px; margin-top: 20px;}
+    .layui-table-cell {
+      overflow: visible;
+      padding: 0;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    /* 表格铺满容器 */
+    .layui-container {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    }
+  </style>
+</head>
+<body>
+  <div class="layui-container">
+
+    <!-- 搜索筛选区域 -->
+    <div class="search-box">
+      <div class="layui-form layui-form-pane">
+        <div class="layui-form-item">
+          <label class="layui-form-label">姓名筛选</label>
+          <div class="layui-input-inline">
+            <input type="text" id="nameFilter" placeholder="输入姓名" class="layui-input">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 表格容器 -->
+    <table id="dataTable" lay-filter="dataTable"></table>
+  </div>
+
+  <!-- LayUI JS -->
+  <script src="{{ url_for('static', filename='src/layui.js') }}"></script>
+  <script>
+    // 将 Flask 传递的数据转为 JS 对象
+    const tableData = [
+      {% for item in avt_items %}
+      {
+        "name": "{{ item[0] }}",
+        "first_di": {{ item[1] }},
+        "first_issue": {{ item[2] }},
+        "second_di": {{ item[3] }},
+        "second_issue": {{ item[4] }},
+        "third_di": {{ item[5] }},
+        "third_issue": {{ item[6] }},
+        "fourth_di": {{ item[7] }},
+        "fourth_issue": {{ item[8] }}
+      },
+      {% endfor %}
+    ];
+
+    layui.use(['table', 'jquery'], function(){
+      const table = layui.table;
+      const $ = layui.jquery;
+
+      // 初始化表格
+      table.render({
+        elem: '#dataTable',
+        data: tableData,
+<!--        toolbar: '#toolbar',-->
+        page: true,
+        limit: 15,
+        limits: [15, 25, 50],
+        cols: [[
+          {field: 'name', title: '姓名', sort: true},
+          {field: 'first_di', title: '一季度日均DI', sort: true, templet: d => d.first_di},
+          {field: 'first_issue', title: '一季度日均问题数', sort: true, templet: d => d.first_issue},
+          {field: 'second_di', title: '二季度日均DI', sort: true, templet: d => d.second_di},
+          {field: 'second_issue', title: '二季度日均问题数', sort: true, templet: d => d.second_issue},
+          {field: 'third_di', title: '三季度日均DI', sort: true, templet: d => d.third_di},
+          {field: 'third_issue', title: '三季度日均问题数', sort: true, templet: d => d.third_issue},
+          {field: 'fourth_di', title: '四季度日均DI', sort: true, templet: d => d.fourth_di},
+          {field: 'fourth_issue', title: '四季度日均问题数', sort: true, templet: d => d.fourth_issue}
+        ]]
+      });
+
+      // 实时筛选功能
+      $('#nameFilter').on('input', function(){
+        const keyword = this.value.toLowerCase();
+        table.reload('dataTable', {
+          data: tableData.filter(item =>
+            item.name.toLowerCase().includes(keyword)
+          ),
+          page: { curr: 1 }
+        });
+      });
+
+      // 工具栏事件
+      table.on('toolbar(dataTable)', function(obj){
+        if(obj.event === 'export'){
+          layer.msg('导出功能需后端支持');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

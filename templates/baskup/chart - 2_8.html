@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LayUI 行展开示例</title>
+  <link href="{{ url_for('static', filename='src/css/layui.css') }}" rel="stylesheet" media="all"/>
+  <style>
+    .expand-btn {
+      cursor: pointer;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      text-align: center;
+      line-height: 16px;
+      border-radius: 2px;
+      background-color: #f2f2f2;
+    }
+    /* 使用 flex 布局将搜索条件横向排列 */
+    .search-container {
+      display: flex;
+      flex-wrap: wrap; /* 允许换行 */
+      align-items: center; /* 垂直居中 */
+      margin: 20px;
+    }
+    .search-item {
+      margin-right: 10px;
+      margin-bottom: 10px; /* 在换行时增加底部间距 */
+    }
+  </style>  
+</head>
+<body>
+  <!-- 搜索条件 -->
+  <div class="search-container">
+    <div class="search-item">
+      <select id="testgroupSelect" class="layui-select" style="width: 200px;">
+        <option value="">请选择测试组</option>
+        <option value="路由">路由</option>
+        <option value="交换">交换</option>
+        <option value="安全">安全</option>
+      </select>
+    </div>
+    <div class="search-item">
+      <select id="projectlevelSelect" class="layui-select" style="width: 200px;">
+        <option value="">请选择项目级别</option>
+        <option value="重要">重要</option>
+        <option value="普通">普通</option>
+      </select>
+    </div>
+    <div class="search-item">
+      <input type="text" id="projectnameInput" placeholder="请输入项目名" class="layui-input" style="width: 200px;">
+    </div>
+    <div class="search-item">
+      <input type="text" id="startDateInput" placeholder="开始日期" class="layui-input" style="width: 200px;">
+    </div>
+    <div class="search-item">
+      <input type="text" id="endDateInput" placeholder="结束日期" class="layui-input" style="width: 200px;">
+    </div>
+    <div class="search-item">
+      <button id="searchBtn" class="layui-btn layui-btn-primary">搜索</button>
+    </div>
+    <div class="search-item">
+      <button id="resetBtn" class="layui-btn layui-btn-primary">重置</button>
+    </div>
+  </div>
+  <table class="layui-hide" id="demo" lay-filter="demo"></table>
+ 
+  <script src="{{ url_for('static', filename='src/layui.js') }}"></script>
+  <script src="{{ url_for('static', filename='src/jquery-3.6.0.min.js') }}"></script>
+  <script>
+    layui.use(['table', 'jquery'], function(){
+      var table = layui.table;
+      var $ = layui.jquery;
+      var laydate = layui.laydate;
+        // 初始化日期控件
+      laydate.render({
+          elem: '#startDateInput'
+      });
+      laydate.render({
+          elem: '#endDateInput'
+      });      
+      // 原始数据
+      var originalData = [
+        {id: 1, testgroup: '交换', projectname: 'S9800产品ADCP鉴定测试', sn: '0.24',projectlevel: '重要', headcounts: 5, expectnum: 30, expectdi: 20, expectavnum: 5, expectavdi: 2, startime: '2025-01-01'},
+        {id: 2, testgroup: '路由', projectname: 'MSR8048产品ADCP鉴定测试', sn: '0.24',projectlevel: '重要', headcounts: 6, expectnum: 40, expectdi: 20, expectavnum: 5, expectavdi: 2, startime: '2025-01-11'},
+        {id: 3, testgroup: '安全', projectname: 'M9000产品ADCP鉴定测试', sn: '0.24',projectlevel: '普通', headcounts: 7, expectnum: 70, expectdi: 20, expectavnum: 5, expectavdi: 2, startime: '2025-02-01'}
+      ];
+
+      // 渲染表格函数
+      function renderTable(data) {
+        table.render({
+          elem: '#demo',
+          data: data,
+          cols: [[
+            {field: 'expand', title: '', width: 60, templet: function(){
+              return '<div class="expand-btn layui-icon layui-icon-right"></div>';
+            }},
+            {field: 'id', title: 'ID', width: 80, sort: true},
+            {field: 'testgroup', title: '测试组', width: 90, sort: true},
+            {field: 'projectname', title: '项目名', width: 300},
+            {field: 'sn', title: '折算系数', width: 90},
+            {field: 'projectlevel', title: '项目级别', width: 120},
+            {field: 'headcounts', title: '测试人数', width: 120},
+            {field: 'expectnum', title: '预期问题总数', width: 120},
+            {field: 'expectdi', title: '预期总DI', width: 120},
+            {field: 'expectavnum', title: '预期问题均数', width: 120},
+            {field: 'expectavdi', title: '预期DI均值', width: 120},
+            {field: 'startime', title: '开始日期'}
+          ]]
+        });
+
+        // 绑定行展开事件
+        var tableBody = document.querySelector('.layui-table-body tbody');
+        if (tableBody) {
+          tableBody.addEventListener('click', function(e) {
+            if (e.target && e.target.matches('.expand-btn')) {
+              var tr = e.target.closest('tr');
+              var dataIndex = tr.getAttribute('data-index');
+              var rowData = data[dataIndex];
+
+              if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('expand-row')) {
+                tr.nextElementSibling.remove();
+                e.target.classList.remove('layui-icon-down');
+                e.target.classList.add('layui-icon-right');
+              } else {
+                var newRow = document.createElement('tr');
+                newRow.classList.add('expand-row');
+                newRow.innerHTML = `<td colspan="11">
+                                      <div style="padding: 10px; background-color: #f2f2f2;">
+                                        <strong>${rowData.testgroup}的详细信息</strong>
+                                        <p>项目名：${rowData.projectname}</p>
+                                        <p>签名：${rowData.sn}</p>
+                                      </div>
+                                    </td>`;
+                tr.parentNode.insertBefore(newRow, tr.nextSibling);
+                e.target.classList.remove('layui-icon-right');
+                e.target.classList.add('layui-icon-down');
+              }
+            }
+          });
+        }
+      }
+
+      // 初次渲染表格
+      renderTable(originalData);
+
+      // 搜索按钮点击事件
+      $('#searchBtn').on('click', function() {
+        var testgroup = $('#testgroupSelect').val().toLowerCase();
+        var projectname = $('#projectnameInput').val().toLowerCase();
+        var projectlevel = $('#projectlevelSelect').val().toLowerCase();
+        var startDate = $('#startDateInput').val();
+        var endDate = $('#endDateInput').val();
+
+        // 过滤数据
+        var filteredData = originalData.filter(function(item) {
+          var matchesTestgroup = !testgroup || item.testgroup.toLowerCase() === testgroup;
+          var matchesProjectname = !projectname || item.projectname.toLowerCase().includes(projectname);
+          var matchesprojectlevel = !projectlevel || item.projectlevel.toLowerCase() === projectlevel;
+          var matchesStartDate = !startDate || new Date(item.startime) >= new Date(startDate);
+          var matchesEndDate = !endDate || new Date(item.startime) <= new Date(endDate);
+
+          return matchesTestgroup && matchesProjectname && matchesprojectlevel && matchesStartDate && matchesEndDate;
+        });
+
+        // 重新渲染表格
+        renderTable(filteredData);
+      });
+
+      // 重置按钮点击事件
+      $('#resetBtn').on('click', function() {
+        $('#testgroupSelect').val('');
+        $('#projectlevelSelect').val('');
+        $('#projectnameInput').val('');
+        $('#startDateInput').val('');
+        $('#endDateInput').val('');
+
+        // 重新渲染表格，恢复为初始数据
+        renderTable(originalData);
+      });
+    });
+  </script>
+</body>
+</html>

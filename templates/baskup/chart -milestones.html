@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>项目绩效管理</title>
+  <!-- 引入 LayUI 样式 -->
+  <link href="{{ url_for('static', filename='src/css/layui.css') }}" rel="stylesheet" media="all"/>
+  <!-- 引入自定义样式 -->
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet" media="all"/>
+  <style>
+    .expand-btn {
+      cursor: pointer;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      text-align: center;
+      line-height: 16px;
+      border-radius: 2px;
+      background-color: #f2f2f2;
+    }
+    .search-container {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 20px;
+    }
+    .search-item {
+      margin-right: 20px;
+      margin-bottom: 20px;
+    }
+    .header-add-btn-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    .header-add-btn {
+      cursor: pointer;
+      padding: 8px 0;
+      background-color: #dcdcdc;
+      color: #000;
+      border-radius: 4px;
+      text-align: center;
+      width: 120px;
+      box-sizing: border-box;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 15px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 400px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+    }
+    .close, .close-executor {
+      color: #aaa;
+      float: right;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .close:hover,
+    .close:focus,
+    .close-executor:hover,
+    .close-executor:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-group select, .form-group input {
+      width: calc(100% - 16px);
+      padding: 6px;
+      box-sizing: border-box;
+    }
+  </style>  
+</head>
+<body>
+  <div class="search-container">
+    <div class="search-item">
+      <select id="testgroupSelect" class="layui-select" style="width: 180px;">
+        <option value="">请选择测试组</option>
+        <option value="路由">路由</option>
+        <option value="交换">交换</option>
+        <option value="安全">安全</option>
+      </select>
+    </div>
+    <div class="search-item">
+      <select id="projectlevelSelect" class="layui-select" style="width: 180px;">
+        <option value="">请选择项目级别</option>
+        <option value="重要">重要</option>
+        <option value="普通">普通</option>
+      </select>
+    </div>
+    <div class="search-item">
+      <select id="projectstatusSelect" class="layui-select" style="width: 180px;">
+        <option value="">请选择项目状态</option>
+        <option value="进行中">进行中</option>
+        <option value="已完成">已完成</option>
+      </select>
+    </div>
+    <div class="search-item">
+      <input type="text" id="projectnameInput" placeholder="请输入项目名" class="layui-input" style="width: 180px;">
+    </div>
+    <div class="search-item">
+      <button id="searchBtn" class="layui-btn layui-btn-primary">搜索</button>
+    </div>
+    <div class="search-item">
+      <button id="resetBtn" class="layui-btn layui-btn-primary">重置</button>
+    </div>
+  </div>
+
+  <table class="layui-hide" id="projectboard" lay-filter="projectboard"></table>
+
+  <div id="myModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>新增项目</h3>
+      <form id="addForm">
+        <div class="form-group">
+          <label>测试组:</label>
+          <select id="modalTestgroup" required>
+            <option value="">请选择测试组</option>
+            <option value="路由">路由</option>
+            <option value="交换">交换</option>
+            <option value="安全">安全</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>项目名:</label>
+          <input type="text" id="modalProjectname" required>
+        </div>
+        <div class="form-group">
+          <label>项目系数:</label>
+          <input type="number" id="modalConversionFactor" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label>项目级别:</label>
+          <select id="modalProjectlevel" required>
+            <option value="">请选择项目级别</option>
+            <option value="重要">重要</option>
+            <option value="普通">普通</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>测试人数:</label>
+          <input type="number" id="modalHeadcounts" required>
+        </div>
+        <div class="form-group">
+          <label>预期问题总数:</label>
+          <input type="number" id="modalExpectnum" required>
+        </div>
+        <div class="form-group">
+          <label>预期总DI:</label>
+          <input type="number" id="modalExpectdi" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label>预期问题均数:</label>
+          <input type="number" id="modalExpectavnum" required>
+        </div>
+        <div class="form-group">
+          <label>预期DI均值:</label>
+          <input type="number" id="modalExpectavdi" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label>开始日期:</label>
+          <input type="date" id="modalStartime" required>
+        </div>
+        <button type="submit" style="margin-top: 10px;">提交</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Executor Modal -->
+  <div id="executorModal" class="modal">
+    <div class="modal-content">
+      <span class="close-executor">&times;</span>
+      <h3>新增执行人</h3>
+      <form id="addExecutorForm">
+        <div class="form-group">
+          <label>执行人姓名:</label>
+          <input type="text" id="modalExecutorName" required>
+        </div>
+        <div class="form-group">
+          <label>预期问题数:</label>
+          <input type="number" id="modalExecutorExpectedIssues" required>
+        </div>
+        <div class="form-group">
+          <label>预期DI:</label>
+          <input type="number" id="modalExecutorExpectedDI" step="0.01" required>
+        </div>
+        <input type="hidden" id="modalProjectID" value="">
+        <button type="submit" style="margin-top: 10px;">提交</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 引入 jQuery 和 LayUI -->
+  <script src="{{ url_for('static', filename='jquery-3.6.0.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='src/layui.js') }}"></script>
+  <!-- 引入自定义脚本 -->
+  <script>
+        $(document).ready(function() {
+            layui.use(['table', 'laydate'], function() {
+                var table = layui.table;
+                var laydate = layui.laydate;
+
+                function fetchDataAndRenderTable() {
+                    console.log("Fetching project data...");
+                    $.ajax({
+                        url: '/projects',
+                        method: 'GET',
+                        success: function(data) {
+                            console.log("Project data fetched successfully:", data);
+                            renderTable(data);
+                        },
+                        error: function() {
+                            console.error('Failed to fetch data from server');
+                            alert('Failed to fetch data from server');
+                        }
+                    });
+                }
+
+                function renderTable(data) {
+                    console.log("Rendering table with data:", data);
+                    table.render({
+                        elem: '#projectboard',
+                        data: data,
+                        cols: [[
+                            {field: 'expand', title: '<div class="header-add-btn-container"><div class="header-add-btn" id="addBtn">新增项目</div></div>', width: 120, templet: function(){
+                                return '<div class="expand-btn layui-icon layui-icon-right"></div>';
+                            }},
+                            {field: 'TestGroup', title: '测试组', width: 90, sort: true},
+                            {field: 'ProjectName', title: '项目名', width: 300},
+                            {field: 'ConversionFactor', title: '系数', width: 60},
+                            {field: 'ProjectLevel', title: '级别', width: 70},
+                            {field: 'HeadCounts', title: '测试人数', width: 90},
+                            {field: 'ExpectedIssues', title: '预期问题总数', width: 120},
+                            {field: 'ExpectedDI', title: '预期总DI', width: 100},
+                            {field: 'ExpectedAverageIssues', title: '预期问题均数', width: 120},
+                            {field: 'ExpectedAverageDI', title: '预期DI均值', width: 100},
+                            {field: 'StartDate', title: '开始日期', width: 120},
+                            {field: 'Status', title: '项目状态', width: 90},
+                            {field: 'operations', title: '操作', width: 180, templet: function(){
+                                return '<button class="layui-btn layui-btn-danger layui-btn-xs delete-btn">删除</button>' +
+                                       '<button class="layui-btn layui-btn-normal layui-btn-xs add-executor-btn">新增执行人</button>';
+                            }}
+                        ]]
+                    });
+
+                    var tableBody = document.querySelector('.layui-table-body tbody');
+                    if (tableBody) {
+                        tableBody.addEventListener('click', function(e) {
+                            if (e.target && e.target.matches('.expand-btn')) {
+                                var tr = e.target.closest('tr');
+                                var dataIndex = tr.getAttribute('data-index');
+                                var rowData = data[dataIndex];
+                                console.log("Row data for expansion:", rowData);
+
+                                if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('expand-row')) {
+                                    console.log("Closing expanded row...");
+                                    tr.nextElementSibling.remove();
+                                    e.target.classList.remove('layui-icon-down');
+                                    e.target.classList.add('layui-icon-right');
+                                } else {
+                                    console.log(`Fetching executors for project ID: ${rowData.ID}`);
+                                    $.ajax({
+                                        url: `/executors/${rowData.ID}`,
+                                        method: 'GET',
+                                        success: function(executors) {
+                                            console.log(`Executors fetched for project ID ${rowData.ID}:`, executors);
+                                            var executorRows = executors.map(function(executor) {
+                                                return `<tr>
+                                                            <td style="width: 100px; border: 1px solid #ddd; padding: 8px;">${executor.ExecutorName}</td>
+                                                            <td style="width: 90px; border: 1px solid #ddd; padding: 8px;">${executor.ExpectedIssues}</td>
+                                                            <td style="width: 90px; border: 1px solid #ddd; padding: 8px;">${executor.ExpectedDI}</td>
+                                                        </tr>`;
+                                            }).join('');
+
+                                            var newRow = document.createElement('tr');
+                                            newRow.classList.add('expand-row');
+                                            newRow.innerHTML = `<td colspan="13">
+                                                                  <div style="padding: 20px; background-color: #f2f2f2;">
+                                                                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+                                                                      <thead>
+                                                                        <tr>
+                                                                          <th style="width: 100px; border: 1px solid #ddd; padding: 8px;">执行人</th>
+                                                                          <th style="width: 90px; border: 1px solid #ddd; padding: 8px;">预期问题数</th>
+                                                                          <th style="width: 90px; border: 1px solid #ddd; padding: 8px;">预期DI</th>
+                                                                        </tr>
+                                                                      </thead>
+                                                                      <tbody>
+                                                                        ${executorRows}
+                                                                      </tbody>
+                                                                    </table>
+                                                                  </div>
+                                                                </td>`;
+                                            tr.parentNode.insertBefore(newRow, tr.nextSibling);
+                                            e.target.classList.remove('layui-icon-right');
+                                            e.target.classList.add('layui-icon-down');
+                                        },
+                                        error: function() {
+                                            console.error('Failed to fetch executors for project ID:', rowData.ID);
+                                            alert('Failed to fetch executors');
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    }
+                }
+
+                fetchDataAndRenderTable();
+
+        $(document).on('click', '#addBtn', function() {
+          var modal = document.getElementById("myModal");
+          modal.style.display = "block";
+        });
+
+        var modal = document.getElementById("myModal");
+        var span = document.getElementsByClassName("close")[0];
+
+        span.onclick = function() {
+          modal.style.display = "none";
+        }
+
+        $('#addForm').on('submit', function(event) {
+          event.preventDefault();
+          var formData = {
+            testgroup: $('#modalTestgroup').val(),
+            projectname: $('#modalProjectname').val(),
+            conversionFactor: $('#modalConversionFactor').val(),
+            projectlevel: $('#modalProjectlevel').val(),
+            headcounts: parseInt($('#modalHeadcounts').val(), 10),
+            expectedissues: parseInt($('#modalExpectnum').val(), 10),
+            expecteddi: $('#modalExpectdi').val(),
+            expectedaverageissues: parseInt($('#modalExpectavnum').val(), 10),
+            expectedaveragedi: $('#modalExpectavdi').val(),
+            startdate: $('#modalStartime').val()
+          };
+
+          $.ajax({
+            url: '/add_project',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+              modal.style.display = "none";
+              fetchDataAndRenderTable(); // Refresh the table data
+            },
+            error: function() {
+              alert('Failed to add project');
+            }
+          });
+        });
+
+        $(document).on('click', '.delete-btn', function() {
+          var tr = $(this).closest('tr');
+          var dataIndex = tr.data('index');
+          var rowData = table.cache.projectboard[dataIndex];
+
+          $.ajax({
+            url: '/delete_project',
+            method: 'POST',
+            contentType: 'application/x-www-form-urlencoded',
+            data: { id: rowData.ID },
+            success: function(response) {
+              alert('项目已删除');
+              fetchDataAndRenderTable(); // 更新表格数据
+            },
+            error: function(xhr, status, error) {
+              console.error('删除项目失败:', error);
+              alert('删除项目失败');
+            }
+          });
+        });
+
+        // Open executor modal
+        $(document).on('click', '.add-executor-btn', function() {
+          var tr = $(this).closest('tr');
+          var dataIndex = tr.data('index');
+          var rowData = table.cache.projectboard[dataIndex];
+
+          // Store project ID in a hidden input
+          $('#modalProjectID').val(rowData.ID);
+
+          var executorModal = document.getElementById("executorModal");
+          executorModal.style.display = "block";
+        });
+
+        // Close executor modal
+        var executorModal = document.getElementById("executorModal");
+        var spanExecutor = document.getElementsByClassName("close-executor")[0];
+        spanExecutor.onclick = function() {
+          executorModal.style.display = "none";
+        }
+
+        // Submit executor form
+        $('#addExecutorForm').on('submit', function(event) {
+          event.preventDefault();
+          var executorData = {
+            executorName: $('#modalExecutorName').val(),
+            expectedIssues: parseInt($('#modalExecutorExpectedIssues').val(), 10),
+            expectedDI: parseFloat($('#modalExecutorExpectedDI').val()),
+            projectID: parseInt($('#modalProjectID').val(), 10)
+          };
+          console.log('Sending executor data:', executorData);
+          $.ajax({
+              url: '/add_executor',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify(executorData),
+              success: function(response) {
+                  executorModal.style.display = "none";
+                  fetchDataAndRenderTable(); // Optionally refresh the table data
+              },
+              error: function(xhr, status, error) {
+                  console.error('Failed to add executor:', xhr.responseText);
+                  alert('Failed to add executor');
+              }
+          });
+        });
+
+        $('#searchBtn').on('click', function() {
+          var searchParams = {
+            testgroup: $('#testgroupSelect').val(),
+            projectlevel: $('#projectlevelSelect').val(),
+            projectstatus: $('#projectstatusSelect').val(),
+            projectname: $('#projectnameInput').val()
+          };
+
+          $.ajax({
+            url: '/search_projects',
+            method: 'GET',
+            data: searchParams,
+            success: function(data) {
+              renderTable(data); // 使用返回的数据更新表格
+            },
+            error: function() {
+              alert('Failed to fetch data from server');
+            }
+          });
+        });
+
+        $('#resetBtn').on('click', function() {
+          $('#testgroupSelect').val('');
+          $('#projectlevelSelect').val('');
+          $('#projectnameInput').val('');
+          $('#projectstatusSelect').val('');
+          fetchDataAndRenderTable();
+        });
+
+      });
+    });
+  </script>
+</body>
+</html>

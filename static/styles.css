@@ -1,0 +1,10 @@
+.toggle {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* 默认隐藏第二层级的行 */
+tr[data-level="2"] {
+    display: none;
+}
+

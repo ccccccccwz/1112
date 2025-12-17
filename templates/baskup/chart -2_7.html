@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LayUI 行展开示例</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/layui/2.7.2/css/layui.css" />
+  <style>
+    .expand-btn {
+      cursor: pointer;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      text-align: center;
+      line-height: 16px;
+      border-radius: 2px;
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+ 
+<table class="layui-hide" id="demo" lay-filter="demo"></table>
+ 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/layui/2.7.2/layui.js"></script>
+<script>
+layui.use('table', function(){
+  var table = layui.table;
+  
+  // 静态数据
+  var data = [
+    {id: 1, testgroup: '交换', projectname: 'S9800产品ADCP鉴定测试', sn: '0.24', experience: 100},
+    {id: 2, testgroup: '路由', projectname: 'MSR8048产品ADCP鉴定测试', sn: '0.24', experience: 200},
+    {id: 3, testgroup: '安全', projectname: 'M9000产品ADCP鉴定测试', sn: '0.24', experience: 300}
+  ];
+
+  // 渲染表格
+  table.render({
+    elem: '#demo',
+    data: data,
+    cols: [[
+      {field: 'expand', title: '', width: 60, templet: function(){
+        return '<div class="expand-btn layui-icon layui-icon-right"></div>';
+      }},
+      {field: 'id', title: 'ID', width:80, sort: true},
+      {field: 'testgroup', title: '测试组', width:90},
+      {field: 'projectname', title: '项目名', width:300},
+      {field: 'sn', title: '折算系数',width:90},
+      {field: 'experience', title: '积分', sort: true}
+    ]]
+  });
+
+  // 确保选择器正确并绑定事件
+  setTimeout(function() {
+    var tableBody = document.querySelector('.layui-table-body tbody');
+    if (tableBody) {
+      tableBody.addEventListener('click', function(e) {
+        console.log("点击事件触发");
+        if (e.target && e.target.matches('.expand-btn')) {
+          console.log("小三角被点击");
+          var tr = e.target.closest('tr');
+          var dataIndex = tr.getAttribute('data-index');
+          console.log("data-index:", dataIndex);
+          var rowData = data[dataIndex];
+          console.log("rowData:", rowData);
+
+          if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('expand-row')) {
+            tr.nextElementSibling.remove();
+            e.target.classList.remove('layui-icon-down');
+            e.target.classList.add('layui-icon-right');
+          } else {
+            var newRow = document.createElement('tr');
+            newRow.classList.add('expand-row');
+            newRow.innerHTML = `<td colspan="6">
+                                  <div style="padding: 10px; background-color: #f2f2f2;">
+                                    <strong>${rowData.testgroup}的详细信息</strong>
+                                    <p>项目名：${rowData.projectname}</p>
+                                    <p>签名：${rowData.sn}</p>
+                                  </div>
+                                </td>`;
+            tr.parentNode.insertBefore(newRow, tr.nextSibling);
+            e.target.classList.remove('layui-icon-right');
+            e.target.classList.add('layui-icon-down');
+          }
+        }
+      });
+    }
+  }, 500); // 延迟绑定事件，确保 DOM 已渲染
+});
+</script>
+
+</body>
+</html>
