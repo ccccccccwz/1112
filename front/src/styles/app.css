@@ -1,28 +1,148 @@
-/* ProjectTable 表头加深一点背景色 */
-/* 如果这个页面只有一个主表，可以直接用第一个 .ant-table 做限定 */
+/* 整体应用样式 */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #f5f7fa;
+}
+
+/* Ant Design 侧边栏样式优化 */
+.ant-layout-sider {
+  background: linear-gradient(180deg, #001529 0%, #002140 100%) !important;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.ant-layout-header {
+  background: #fff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 0 24px !important;
+}
+
+/* 主内容区域 */
+.ant-layout-content {
+  background: #f5f7fa !important;
+}
+
+/* ProjectTable 表头样式 */
 .ant-table-wrapper:first-of-type .ant-table-thead > tr > th.ant-table-cell {
-  background-color: #e0e0e0; /* 比默认更深一点 */
+  background: linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%);
+  font-weight: 600;
+  color: #262626;
+  border-bottom: 2px solid #1890ff;
   white-space: nowrap;
-  padding: 4px 6px;
+  padding: 12px 8px;
 }
 
-/* 表体单元格稍微紧凑一点 */
+/* 表体单元格 */
 .ant-table-wrapper:first-of-type .ant-table-tbody > tr > td.ant-table-cell {
-  padding: 4px 6px;
+  padding: 8px;
 }
 
-/* 内容动画：很快的淡入淡出（0.08s） */
+/* 表格行hover效果 */
+.ant-table-tbody > tr:hover > td {
+  background: #e6f7ff !important;
+}
+
+/* 按钮样式优化 */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
+  transition: all 0.3s;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.ant-btn-danger {
+  background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%);
+  border: none;
+  box-shadow: 0 2px 4px rgba(255, 77, 79, 0.2);
+}
+
+.ant-btn-danger:hover {
+  background: linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%);
+  box-shadow: 0 4px 8px rgba(255, 77, 79, 0.3);
+  transform: translateY(-1px);
+}
+
+/* 模态框样式优化 */
+.ant-modal-content {
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+}
+
+.ant-modal-header {
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.ant-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #262626;
+}
+
+/* 表单项样式 */
+.ant-form-item-label > label {
+  font-weight: 500;
+  color: #595959;
+}
+
+/* Input 和 Select 样式 */
+.ant-input,
+.ant-select-selector,
+.ant-input-number,
+.ant-picker {
+  border-radius: 6px;
+  border-color: #d9d9d9;
+  transition: all 0.3s;
+}
+
+.ant-input:focus,
+.ant-select-focused .ant-select-selector,
+.ant-input-number-focused,
+.ant-picker-focused {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+/* 搜索栏样式 */
+.ant-space {
+  flex-wrap: wrap;
+}
+
+/* 卡片样式 */
+.ant-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: none;
+}
+
+/* 分页样式 */
+.ant-pagination-item-active {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.ant-pagination-item-active a {
+  color: #fff;
+}
+
+/* 模态框动画 */
 .fast-modal-fade-enter,
 .fast-modal-fade-appear {
   opacity: 0;
-  transform: scale(0.08);
+  transform: scale(0.95);
 }
 
 .fast-modal-fade-enter-active,
 .fast-modal-fade-appear-active {
   opacity: 1;
   transform: scale(1);
-  transition: all 0.08s ease-out;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .fast-modal-fade-leave {
@@ -32,11 +152,11 @@
 
 .fast-modal-fade-leave-active {
   opacity: 0;
-  transform: scale(0.18);
-  transition: all 0.08s ease-in;
+  transform: scale(0.95);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.6, 1);
 }
 
-/* 遮罩动画：同样很快的淡入淡出 */
+/* 遮罩动画 */
 .fast-modal-mask-enter,
 .fast-modal-mask-appear {
   opacity: 0;
@@ -45,7 +165,7 @@
 .fast-modal-mask-enter-active,
 .fast-modal-mask-appear-active {
   opacity: 1;
-  transition: opacity 0.08s linear;
+  transition: opacity 0.2s ease;
 }
 
 .fast-modal-mask-leave {
@@ -54,5 +174,45 @@
 
 .fast-modal-mask-leave-active {
   opacity: 0;
-  transition: opacity 0.08s linear;
+  transition: opacity 0.15s ease;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .ant-layout-header {
+    padding: 0 16px !important;
+  }
+
+  .ant-space {
+    width: 100%;
+  }
+
+  .ant-space-item {
+    width: 100%;
+  }
+
+  .ant-select,
+  .ant-input {
+    width: 100% !important;
+  }
 }
