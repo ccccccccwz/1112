@@ -197,6 +197,19 @@ body {
   background: #a8a8a8;
 }
 
+/* 展开行样式 - 修复子表不铺满问题 */
+.ant-table-expanded-row > td {
+  padding: 0 !important;
+}
+
+.ant-table-expanded-row .ant-table-wrapper {
+  width: 100%;
+}
+
+.ant-table-expanded-row .ant-table-container {
+  width: 100% !important;
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
   .ant-layout-header {

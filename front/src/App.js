@@ -7,12 +7,14 @@ import {
   BarChartOutlined,
   LineChartOutlined,
   QuestionCircleOutlined,
+  CalculatorOutlined,
 } from '@ant-design/icons';
 import { Button, Layout, Menu, theme, ConfigProvider } from 'antd';
 import zhCN from 'antd/es/locale/zh_CN';
 
 import TaskPanel from "./components/TaskPanel/TaskPanel";
 import ChartPanel from './components/ChartPanel';
+import CalcRulePage from './components/CalcRulePage';
 
 import HelpModal from './components/HelpModal';
 import DateFilter from './components/DateFilter';
@@ -94,6 +96,9 @@ export default function App() {
       case 'daily':
         return <div style={{ padding: 16 }}>日均统计功能开发中...</div>;
 
+      case 'calc':
+        return <CalcRulePage />;
+
       default:
         return null;
     }
@@ -132,7 +137,8 @@ export default function App() {
             items={[
               { key: 'chart', icon: <BarChartOutlined />, label: '图表面板' },
               { key: 'task', icon: <UserOutlined />, label: '任务面板' },
-              { key: 'daily', icon: <LineChartOutlined />, label: '日均统计' }
+              { key: 'daily', icon: <LineChartOutlined />, label: '日均统计' },
+              { key: 'calc', icon: <CalculatorOutlined />, label: '计算规则' }
             ]}
           />
         </Sider>

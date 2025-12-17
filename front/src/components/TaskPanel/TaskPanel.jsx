@@ -19,15 +19,22 @@ export default function TaskPanel() {
     status: undefined,
     projectName: ""
   });
+  const [loadingExecutors, setLoadingExecutors] = useState({});
+  const executorsCacheRef = React.useRef(new Map());
 
   const fetchProjects = useCallback(async (params) => {
     try {
       const res = await axios.get(`${API_BASE}/projects/projects`);
-      const data = res.data.map((p) => ({
-        ...p,
-        id: p.ID ?? p.id,
-        executors: []
-      }));
+      const cache = executorsCacheRef.current;
+
+      const data = res.data.map((p) => {
+        const projectId = p.ID ?? p.id;
+        return {
+          ...p,
+          id: projectId,
+          executors: cache.get(projectId) || []
+        };
+      });
 
       const f = params || {};
       const filtered = data.filter((p) => {
@@ -52,15 +59,19 @@ export default function TaskPanel() {
   }, [fetchProjects]);
 
   const loadExecutorsForProject = useCallback(async (projectId) => {
+    setLoadingExecutors((prev) => ({ ...prev, [projectId]: true }));
     try {
       const res = await axios.get(`${API_BASE}/executors/executors/${projectId}`);
       const executors = res.data || [];
+      executorsCacheRef.current.set(projectId, executors);
       setProjects((prevProjects) =>
         prevProjects.map((p) => (p.id === projectId ? { ...p, executors } : p))
       );
     } catch (err) {
       console.error(`加载执行人失败:`, err);
       message.error("加载执行人失败");
+    } finally {
+      setLoadingExecutors((prev) => ({ ...prev, [projectId]: false }));
     }
   }, []);
 
@@ -211,6 +222,7 @@ export default function TaskPanel() {
         onExpectedDIChange={handleExpectedDIChange}
         onEditProjectName={handleEditProjectName}
         onLoadExecutors={loadExecutorsForProject}
+        loadingExecutors={loadingExecutors}
       />
 
       <AddProjectModal
