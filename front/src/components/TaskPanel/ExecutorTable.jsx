@@ -35,13 +35,8 @@ function ExecutorTableInner({
         width: 100,
         align: "center",
         onHeaderCell: () => ({ style: { whiteSpace: "nowrap" } }),
-        render: (text, record) => (
-          <StyledInput
-            value={text}
-            onChange={(e) =>
-              onUpdateExecutor(record.ID, "ExecutorName", e.target.value)
-            }
-          />
+        render: (text) => (
+          <StyledInput value={text} readOnly />
         )
       },
       {
@@ -186,15 +181,8 @@ function ExecutorTableInner({
         key: "ActualDI",
         width: 100,
         align: "center",
-        render: (text, record) => (
-          <StyledInput
-            step="0.01"
-            min={0}
-            value={text}
-            onChange={(e) =>
-              onUpdateExecutor(record.ID, "ActualDI", e.target.value)
-            }
-          />
+        render: (text) => (
+          <StyledInput value={text} readOnly />
         )
       },
       {
@@ -314,8 +302,9 @@ function ExecutorTableInner({
       pagination={false}
       bordered
       size="small"
-      scroll={{ x: true }}
+      scroll={{ x: 'max-content' }}
       components={components}
+      style={{ width: '100%' }}
     />
   );
 }

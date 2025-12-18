@@ -1,6 +1,6 @@
 // src/components/TaskPanel/ProjectTable.jsx
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { Table, Button, Select, DatePicker, Input, InputNumber } from "antd";
+import { Table, Button, Select, DatePicker, Input, InputNumber, Spin } from "antd";
 import dayjs from "dayjs";
 import ExecutorTable from "./ExecutorTable";
 
@@ -209,7 +209,8 @@ function ProjectTable({
   onDeleteExecutor,
   onUpdateExecutor,
   onResetExpectedDI,
-  onLoadExecutors
+  onLoadExecutors,
+  loadingExecutors = {}
 }) {
   // 子表相关回调
   const handleDeleteExecutor = useCallback(
@@ -230,26 +231,35 @@ function ProjectTable({
 
   // expandedRowRender 与 onExpand 用 useCallback 包一下，避免每次创建新函数
   const expandedRowRender = useCallback(
-    (record) =>
-      record.executors?.length > 0 ? (
-        <div style={{ padding: 10 }}>
-          <ExecutorTable
-            executors={record.executors}
-            onDeleteExecutor={(executorId) =>
-              handleDeleteExecutor(record.id, executorId)
-            }
-            onUpdateExecutor={(executorId, field, value) =>
-              handleUpdateExecutor(record.id, executorId, field, value)
-            }
-            onResetExpectedDI={(executorId) =>
-              handleResetExpectedDI(record.id, executorId)
-            }
-          />
-        </div>
+    (record) => {
+      const isLoading = loadingExecutors[record.id];
+
+      if (isLoading) {
+        return (
+          <div style={{ padding: 20, textAlign: "center" }}>
+            <Spin tip="加载执行人数据中..." />
+          </div>
+        );
+      }
+
+      return record.executors?.length > 0 ? (
+        <ExecutorTable
+          executors={record.executors}
+          onDeleteExecutor={(executorId) =>
+            handleDeleteExecutor(record.id, executorId)
+          }
+          onUpdateExecutor={(executorId, field, value) =>
+            handleUpdateExecutor(record.id, executorId, field, value)
+          }
+          onResetExpectedDI={(executorId) =>
+            handleResetExpectedDI(record.id, executorId)
+          }
+        />
       ) : (
-        <div style={{ color: "#999" }}>当前项目暂无执行人</div>
-      ),
-    [handleDeleteExecutor, handleUpdateExecutor, handleResetExpectedDI]
+        <div style={{ color: "#999", padding: 10 }}>当前项目暂无执行人</div>
+      );
+    },
+    [handleDeleteExecutor, handleUpdateExecutor, handleResetExpectedDI, loadingExecutors]
   );
 
   const handleExpand = useCallback(
