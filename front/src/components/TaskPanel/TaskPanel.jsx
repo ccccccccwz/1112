@@ -194,9 +194,9 @@ export default function TaskPanel() {
   const handleRefreshProject = useCallback(async (projectId) => {
     try {
       message.loading({ content: "正在刷新项目...", key: `refresh-${projectId}` });
-      const res = await axios.post(`${API_BASE}/projects/refresh_project`, { id: projectId });
-      if (res.data.status === "跳过") {
-        message.warning({ content: res.data.reason, key: `refresh-${projectId}` });
+      const res = await axios.post(`${API_BASE}/executors/update_executors_data`, { id: projectId });
+      if (res.data.message === "手工创建项目，不支持刷新") {
+        message.warning({ content: res.data.message, key: `refresh-${projectId}` });
       } else {
         message.success({ content: "刷新完成", key: `refresh-${projectId}` });
       }
