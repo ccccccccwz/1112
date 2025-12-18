@@ -1,8 +1,12 @@
 // src/components/TaskPanel/ProjectTable.jsx
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { Table, Button, Select, DatePicker, Input, InputNumber, Spin, Modal } from "antd";
+import { Table, Button, Select, DatePicker, Input, InputNumber, Spin, Modal, Descriptions } from "antd";
 import dayjs from "dayjs";
+import "dayjs/locale/zh-cn";
+import locale from "antd/es/date-picker/locale/zh_CN";
 import ExecutorTable from "./ExecutorTable";
+
+dayjs.locale("zh-cn");
 
 /* ========== 下拉选项常量 ========== */
 const TEST_GROUP_OPTIONS = [
@@ -46,6 +50,8 @@ function ProjectTable({
   // 执行人弹窗状态
   const [executorModalVisible, setExecutorModalVisible] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  // 分页状态
+  const [pageSize, setPageSize] = useState(15);
 
   // 子表相关回调
   const handleDeleteExecutor = useCallback(
@@ -354,6 +360,7 @@ function ProjectTable({
                 value={parsed}
                 style={{ width: "100%" }}
                 format="YYYY-MM-DD"
+                locale={locale}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(date) => {
                   const formatted = date ? date.format("YYYY-MM-DD") : null;
@@ -472,6 +479,26 @@ function ProjectTable({
     ]
   );
 
+  // 渲染项目信息
+  const renderProjectInfo = () => {
+    if (!selectedProject) return null;
+    return (
+      <Descriptions bordered size="small" column={4} style={{ marginBottom: 16 }}>
+        <Descriptions.Item label="测试组">{selectedProject.TestGroup}</Descriptions.Item>
+        <Descriptions.Item label="项目名称">{selectedProject.ProjectName}</Descriptions.Item>
+        <Descriptions.Item label="项目系数">{selectedProject.ConversionFactor}</Descriptions.Item>
+        <Descriptions.Item label="级别">{selectedProject.ProjectLevel}</Descriptions.Item>
+        <Descriptions.Item label="人数">{selectedProject.HeadCounts}</Descriptions.Item>
+        <Descriptions.Item label="预期问题数"><span style={{ color: "red" }}>{selectedProject.ExpectedIssues}</span></Descriptions.Item>
+        <Descriptions.Item label="预期DI"><span style={{ color: "red" }}>{selectedProject.ExpectedDI}</span></Descriptions.Item>
+        <Descriptions.Item label="开始日期">{selectedProject.StartDate}</Descriptions.Item>
+        <Descriptions.Item label="问题均数">{selectedProject.AverageIssues}</Descriptions.Item>
+        <Descriptions.Item label="DI均值">{selectedProject.AverageDI}</Descriptions.Item>
+        <Descriptions.Item label="状态">{selectedProject.Status}</Descriptions.Item>
+      </Descriptions>
+    );
+  };
+
   // 渲染执行人弹窗内容
   const renderExecutorModalContent = () => {
     if (!selectedProject) return null;
@@ -518,20 +545,23 @@ function ProjectTable({
           style: { cursor: editingRowId ? "default" : "pointer" }
         })}
         pagination={{
-          pageSize: 15,
+          pageSize: pageSize,
           pageSizeOptions: ["15", "25", "50", "100"],
-          showSizeChanger: true
+          showSizeChanger: true,
+          onShowSizeChange: (current, size) => setPageSize(size)
         }}
         scroll={{ y: "calc(100vh - 300px)" }}
       />
       <Modal
-        title={selectedProject ? `执行人列表 - ${selectedProject.ProjectName}` : "执行人列表"}
+        title={selectedProject ? `项目详情 - ${selectedProject.ProjectName}` : "项目详情"}
         open={executorModalVisible}
         onCancel={() => setExecutorModalVisible(false)}
         footer={null}
         width={1200}
         destroyOnClose
       >
+        {renderProjectInfo()}
+        <div style={{ fontWeight: "bold", marginBottom: 8 }}>执行人列表</div>
         {renderExecutorModalContent()}
       </Modal>
     </>

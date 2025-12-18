@@ -52,6 +52,11 @@ def refresh_all_projects_route():
     return project_service.refresh_all_projects()
 
 
+@project_bp.route('/refresh_project', methods=['POST'])
+def refresh_project_route():
+    return project_service.refresh_project(request)
+
+
 @project_bp.route('/update_head_counts', methods=['POST'])
 def update_head_counts():
     return project_service.update_head_counts(request)

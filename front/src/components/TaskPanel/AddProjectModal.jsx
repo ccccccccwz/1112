@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { Modal, Form, Input, Select, Radio, InputNumber, DatePicker, message } from "antd";
 import axios from "axios";
 import dayjs from "dayjs";
+import "dayjs/locale/zh-cn";
+import locale from "antd/es/date-picker/locale/zh_CN";
+
+dayjs.locale("zh-cn");
 
 const API_BASE = "http://localhost:65001/api";
 
@@ -125,7 +129,7 @@ export default function AddProjectModal({ visible, onCancel, onSubmit }) {
               <Input placeholder="项目预期DI" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item name="startDate" label="开始日期" rules={[{ required: true, message: "请选择开始日期" }]}>
-              <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
+              <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} locale={locale} />
             </Form.Item>
           </>
         )}

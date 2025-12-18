@@ -191,6 +191,22 @@ export default function TaskPanel() {
     }
   }, [fetchProjects, filters]);
 
+  const handleRefreshProject = useCallback(async (projectId) => {
+    try {
+      message.loading({ content: "正在刷新项目...", key: `refresh-${projectId}` });
+      const res = await axios.post(`${API_BASE}/projects/refresh_project`, { id: projectId });
+      if (res.data.status === "跳过") {
+        message.warning({ content: res.data.reason, key: `refresh-${projectId}` });
+      } else {
+        message.success({ content: "刷新完成", key: `refresh-${projectId}` });
+      }
+      loadExecutorsForProject(projectId);
+    } catch (err) {
+      console.error("刷新失败:", err);
+      message.error({ content: "刷新失败", key: `refresh-${projectId}` });
+    }
+  }, [loadExecutorsForProject]);
+
   const openProjectModal = useCallback(() => setShowProjectModal(true), []);
   const closeProjectModal = useCallback(() => setShowProjectModal(false), []);
   const closeExecutorModal = useCallback(() => setShowExecutorModal(false), []);
@@ -213,7 +229,7 @@ export default function TaskPanel() {
         onDeleteExecutor={handleDeleteExecutor}
         onUpdateExecutor={handleUpdateExecutor}
         onResetExpectedDI={handleResetExpectedDI}
-        onRefreshProject={handleRefreshAll}
+        onRefreshProject={handleRefreshProject}
         onTestGroupChange={handleTestGroupChange}
         onProjectLevelChange={handleProjectLevelChange}
         onStatusChange={handleStatusChange}
