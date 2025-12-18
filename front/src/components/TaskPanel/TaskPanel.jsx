@@ -136,7 +136,8 @@ export default function TaskPanel() {
     try {
       await axios.post(`${API_BASE}/executors/update_executor`, {
         id: executorId,
-        [field]: value
+        column: field,
+        value: value
       });
       setProjects((prev) =>
         prev.map((p) =>
