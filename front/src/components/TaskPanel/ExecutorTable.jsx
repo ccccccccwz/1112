@@ -301,10 +301,10 @@ function ExecutorTableInner({
       dataSource={executors}
       pagination={false}
       bordered
-      size="small"
-      scroll={{ x: 'max-content' }}
-      components={components}
-      style={{ width: '100%' }}
+//       size="small"
+//       scroll={{ x: 'max-content' }}
+//       components={components}
+//       style={{ width: '100%' }}
     />
   );
 }

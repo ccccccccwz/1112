@@ -14,7 +14,7 @@ export default function AddExecutorModal({ visible, onCancel, onSubmit, projectI
       setLoading(true);
 
       const payload = {
-        projectId: projectId,
+        projectID: projectId,
         executorName: values.name,
         days: values.days,
         expectedIssues: values.expectedIssues,
@@ -54,13 +54,13 @@ export default function AddExecutorModal({ visible, onCancel, onSubmit, projectI
           <Input placeholder="请输入姓名" />
         </Form.Item>
         <Form.Item name="days" label="投入天数" rules={[{ required: true, message: "请输入投入天数" }]}>
-          <InputNumber min={1} placeholder="ADCP任务15天，其他10天" style={{ width: "100%" }} />
+          <Input placeholder="ADCP任务15天，其他10天" style={{ width: "100%" }} />
         </Form.Item>
         <Form.Item name="expectedIssues" label="挑战问题数" rules={[{ required: true, message: "请输入挑战问题数" }]}>
-          <InputNumber min={0} placeholder="预期问题数" style={{ width: "100%" }} />
+          <Input placeholder="预期问题数" style={{ width: "100%" }} />
         </Form.Item>
         <Form.Item name="expectedDI" label="挑战DI" rules={[{ required: true, message: "请输入挑战DI" }]}>
-          <InputNumber min={0} step={0.01} placeholder="预期DI值" style={{ width: "100%" }} />
+          <Input placeholder="预期DI值" style={{ width: "100%" }} />
         </Form.Item>
       </Form>
     </Modal>

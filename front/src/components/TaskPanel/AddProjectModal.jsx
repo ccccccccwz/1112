@@ -19,7 +19,6 @@ export default function AddProjectModal({ visible, onCancel, onSubmit }) {
         dataSource: dataSource,
         testgroup: values.testGroup,
         projectlevel: values.projectLevel,
-        status: values.status || "进行中"
       };
 
       if (dataSource === "itest") {
@@ -30,7 +29,7 @@ export default function AddProjectModal({ visible, onCancel, onSubmit }) {
       } else {
         payload.projectname = values.projectName;
         payload.conversionFactor = values.conversionFactor || 1;
-        payload.headcounts = values.headCounts || 1;
+        payload.headcounts = values.headCounts || 0;
         payload.expectedissues = values.expectedIssues;
         payload.expecteddi = values.expectedDI;
         payload.AverageIssues = values.averageIssues || null;
@@ -86,17 +85,23 @@ export default function AddProjectModal({ visible, onCancel, onSubmit }) {
 
         {dataSource === "itest" ? (
           <>
-            <Form.Item name="taskId" label="iTest任务ID" rules={[{ required: true, message: "请输入任务ID，如T202511180041" }]}>
+            <Form.Item name="taskId" label="任务编号" rules={[{ required: true, message: "请输入任务编号，如T202511180041" }]}>
               <Input placeholder="例如: T202511180041" />
             </Form.Item>
             <Form.Item name="testRound" label="测试轮次" rules={[{ required: true, message: "请输入测试轮次" }]}>
-              <InputNumber min={1} placeholder="1" style={{ width: "100%" }} />
+              <Input placeholder="1" style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item name="projectLevel" label="项目级别" rules={[{ required: true, message: "请选择项目级别" }]}>
+              <Select placeholder="项目级别">
+                <Select.Option value="重要">重要</Select.Option>
+                <Select.Option value="普通">普通</Select.Option>
+              </Select>
             </Form.Item>
             <Form.Item name="expectedIssues" label="预期问题数">
-              <InputNumber min={0} placeholder="留空则自动计算" style={{ width: "100%" }} />
+              <Input placeholder="项目预期问题数" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item name="expectedDI" label="预期DI">
-              <InputNumber min={0} step={0.01} placeholder="留空则自动计算" style={{ width: "100%" }} />
+              <Input placeholder="项目预期DI" style={{ width: "100%" }} />
             </Form.Item>
           </>
         ) : (
@@ -104,38 +109,23 @@ export default function AddProjectModal({ visible, onCancel, onSubmit }) {
             <Form.Item name="projectName" label="项目名称" rules={[{ required: true, message: "请输入项目名称" }]}>
               <Input placeholder="输入项目名称" />
             </Form.Item>
+            <Form.Item name="conversionFactor" label="项目系数">
+              <InputNumber min={0} step={0.01} placeholder="0.2" style={{ width: "100%" }} />
+            </Form.Item>
             <Form.Item name="projectLevel" label="项目级别" rules={[{ required: true, message: "请选择项目级别" }]}>
               <Select placeholder="选择级别">
                 <Select.Option value="重要">重要</Select.Option>
                 <Select.Option value="普通">普通</Select.Option>
               </Select>
             </Form.Item>
-            <Form.Item name="conversionFactor" label="项目系数">
-              <InputNumber min={0} step={0.01} placeholder="1.0" style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item name="headCounts" label="参与人数">
-              <InputNumber min={1} placeholder="1" style={{ width: "100%" }} />
-            </Form.Item>
             <Form.Item name="expectedIssues" label="预期问题数" rules={[{ required: true, message: "请输入预期问题数" }]}>
-              <InputNumber min={0} placeholder="预期问题总数" style={{ width: "100%" }} />
+              <Input placeholder="项目预期问题数" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item name="expectedDI" label="预期DI" rules={[{ required: true, message: "请输入预期DI" }]}>
-              <InputNumber min={0} step={0.01} placeholder="预期DI总值" style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item name="averageIssues" label="人均问题数">
-              <InputNumber min={0} placeholder="留空则自动计算" style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item name="averageDI" label="人均DI">
-              <InputNumber min={0} step={0.01} placeholder="留空则自动计算" style={{ width: "100%" }} />
+              <Input placeholder="项目预期DI" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item name="startDate" label="开始日期" rules={[{ required: true, message: "请选择开始日期" }]}>
               <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item name="status" label="项目状态">
-              <Select placeholder="选择状态" defaultValue="进行中">
-                <Select.Option value="进行中">进行中</Select.Option>
-                <Select.Option value="已完成">已完成</Select.Option>
-              </Select>
             </Form.Item>
           </>
         )}
