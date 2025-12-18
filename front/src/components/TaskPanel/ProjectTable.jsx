@@ -1,6 +1,6 @@
 // src/components/TaskPanel/ProjectTable.jsx
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { Table, Button, Select, DatePicker, Input, InputNumber, Spin } from "antd";
+import { Table, Button, Select, DatePicker, Input, InputNumber, Spin, Modal } from "antd";
 import dayjs from "dayjs";
 import ExecutorTable from "./ExecutorTable";
 
@@ -21,179 +21,6 @@ const STATUS_OPTIONS = [
   { label: "已完成", value: "已完成" }
 ];
 
-/* ========== 文本单元格编辑 ========== */
-const InlineEditableTextCell = React.memo(function InlineEditableTextCell({
-  value,
-  onSave
-}) {
-  const [editing, setEditing] = useState(false);
-  const [innerValue, setInnerValue] = useState(value);
-
-  useEffect(() => {
-    if (!editing) {
-      setInnerValue(value);
-    }
-  }, [value, editing]);
-
-  if (!editing) {
-    return (
-      <div
-        style={{ cursor: "pointer" }} // 不再强制 minHeight
-        onClick={() => setEditing(true)}
-      >
-        {value || <span style={{ color: "#999" }}>点击编辑</span>}
-      </div>
-    );
-  }
-
-  const handleExit = () => {
-    setEditing(false);
-    if (innerValue !== value) onSave(innerValue);
-  };
-
-  return (
-    <Input
-      size="small"
-      autoFocus
-      value={innerValue}
-      onChange={(e) => setInnerValue(e.target.value)}
-      onPressEnter={handleExit}
-      onBlur={handleExit}
-    />
-  );
-});
-
-/* ========== 数字单元格编辑 ========== */
-const InlineEditableNumberCell = React.memo(function InlineEditableNumberCell({
-  value,
-  onSave,
-  style,
-  min,
-  step
-}) {
-  const [editing, setEditing] = useState(false);
-  const [innerValue, setInnerValue] = useState(value);
-
-  useEffect(() => {
-    if (!editing) {
-      setInnerValue(value);
-    }
-  }, [value, editing]);
-
-  if (!editing) {
-    return (
-      <div
-        style={{ cursor: "pointer", ...style }}
-        onClick={() => setEditing(true)}
-      >
-        {value !== undefined && value !== null ? (
-          value
-        ) : (
-          <span style={{ color: "#999" }}>点击编辑</span>
-        )}
-      </div>
-    );
-  }
-
-  const handleExit = () => {
-    setEditing(false);
-    if (innerValue !== value) onSave(innerValue);
-  };
-
-  return (
-    <InputNumber
-      size="small"
-      autoFocus
-      style={{ width: "100%", ...style }}
-      value={innerValue}
-      min={min}
-      step={step}
-      onChange={(val) => setInnerValue(val)}
-      onPressEnter={handleExit}
-      onBlur={handleExit}
-    />
-  );
-});
-
-/* ========== 下拉单元格编辑 ========== */
-const InlineEditableSelectCell = React.memo(function InlineEditableSelectCell({
-  value,
-  options,
-  onSave
-}) {
-  const [editing, setEditing] = useState(false);
-  const [innerValue, setInnerValue] = useState(value);
-
-  useEffect(() => {
-    if (!editing) {
-      setInnerValue(value);
-    }
-  }, [value, editing]);
-
-  if (!editing) {
-    const label =
-      options.find((o) => o.value === value)?.label || value || "点击选择";
-    return (
-      <div style={{ cursor: "pointer" }} onClick={() => setEditing(true)}>
-        {label}
-      </div>
-    );
-  }
-
-  return (
-    <Select
-      size="small"
-      autoFocus
-      value={innerValue}
-      options={options}
-      style={{ width: "100%" }}
-      onChange={(val) => {
-        setInnerValue(val);
-        setEditing(false);
-        if (val !== value) onSave(val);
-      }}
-      onBlur={() => {
-        setEditing(false);
-      }}
-    />
-  );
-});
-
-/* ========== 日期单元格编辑 ========== */
-const InlineEditableDateCell = React.memo(function InlineEditableDateCell({
-  value,
-  onSave
-}) {
-  const [editing, setEditing] = useState(false);
-  const parsed = value ? dayjs(value) : null;
-
-  if (!editing) {
-    return (
-      <div style={{ cursor: "pointer" }} onClick={() => setEditing(true)}>
-        {value || <span style={{ color: "#999" }}>点击选择</span>}
-      </div>
-    );
-  }
-
-  return (
-    <DatePicker
-      size="small"
-      autoFocus
-      value={parsed}
-      style={{ width: "100%" }}
-      format="YYYY-MM-DD"
-      onChange={(date) => {
-        const formatted = date ? date.format("YYYY-MM-DD") : null;
-        setEditing(false);
-        if (formatted !== value) onSave(formatted);
-      }}
-      onBlur={() => {
-        setEditing(false);
-      }}
-    />
-  );
-});
-
 function ProjectTable({
   projects,
   onDeleteProject,
@@ -212,6 +39,14 @@ function ProjectTable({
   onLoadExecutors,
   loadingExecutors = {}
 }) {
+  // 编辑模式状态
+  const [editingRowId, setEditingRowId] = useState(null);
+  // 编辑中的临时数据
+  const [editingData, setEditingData] = useState({});
+  // 执行人弹窗状态
+  const [executorModalVisible, setExecutorModalVisible] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+
   // 子表相关回调
   const handleDeleteExecutor = useCallback(
     (projectId, executorId) => onDeleteExecutor(projectId, executorId),
@@ -229,70 +64,87 @@ function ProjectTable({
     [onResetExpectedDI]
   );
 
-  // expandedRowRender 与 onExpand 用 useCallback 包一下，避免每次创建新函数
-  const expandedRowRender = useCallback(
-    (record) => {
-      const isLoading = loadingExecutors[record.id];
-
-      if (isLoading) {
-        return (
-          <div style={{ padding: 20, textAlign: "center" }}>
-            <Spin tip="加载执行人数据中..." />
-          </div>
-        );
+  // 行点击处理 - 打开执行人弹窗
+  const handleRowClick = useCallback((record) => {
+    setSelectedProject(record);
+    setExecutorModalVisible(true);
+    // 加载执行人数据
+    if (!record.executors || record.executors.length === 0) {
+      if (typeof onLoadExecutors === "function") {
+        onLoadExecutors(record.id);
       }
+    }
+  }, [onLoadExecutors]);
 
-      return record.executors?.length > 0 ? (
-        <ExecutorTable
-          executors={record.executors}
-          onDeleteExecutor={(executorId) =>
-            handleDeleteExecutor(record.id, executorId)
-          }
-          onUpdateExecutor={(executorId, field, value) =>
-            handleUpdateExecutor(record.id, executorId, field, value)
-          }
-          onResetExpectedDI={(executorId) =>
-            handleResetExpectedDI(record.id, executorId)
-          }
-        />
-      ) : (
-        <div style={{ color: "#999", padding: 10 }}>当前项目暂无执行人</div>
-      );
-    },
-    [handleDeleteExecutor, handleUpdateExecutor, handleResetExpectedDI, loadingExecutors]
-  );
+  // 开始编辑
+  const handleStartEdit = useCallback((record, e) => {
+    e.stopPropagation();
+    setEditingRowId(record.id);
+    setEditingData({
+      TestGroup: record.TestGroup,
+      ProjectName: record.ProjectName,
+      ProjectLevel: record.ProjectLevel,
+      ExpectedIssues: record.ExpectedIssues,
+      ExpectedDI: record.ExpectedDI,
+      StartDate: record.StartDate,
+      Status: record.Status
+    });
+  }, []);
 
-  const handleExpand = useCallback(
-    (expanded, record) => {
-      if (
-        expanded &&
-        (!record.executors || record.executors.length === 0)
-      ) {
-        if (typeof onLoadExecutors === "function") {
-          onLoadExecutors(record.id);
-        }
+  // 确认编辑
+  const handleConfirmEdit = useCallback((record, e) => {
+    e.stopPropagation();
+    const original = record;
+    // 依次保存变更的字段
+    if (editingData.TestGroup !== original.TestGroup) {
+      onTestGroupChange(record.id, editingData.TestGroup);
+    }
+    if (editingData.ProjectName !== original.ProjectName) {
+      onEditProjectName(record.id, editingData.ProjectName);
+    }
+    if (editingData.ProjectLevel !== original.ProjectLevel) {
+      onProjectLevelChange(record.id, editingData.ProjectLevel);
+    }
+    if (editingData.ExpectedIssues !== original.ExpectedIssues) {
+      onExpectedIssuesChange(record.id, editingData.ExpectedIssues);
+    }
+    if (editingData.ExpectedDI !== original.ExpectedDI) {
+      onExpectedDIChange(record.id, editingData.ExpectedDI);
+    }
+    if (editingData.StartDate !== original.StartDate) {
+      onStartDateChange(record.id, editingData.StartDate);
+    }
+    if (editingData.Status !== original.Status) {
+      onStatusChange(record.id, editingData.Status);
+    }
+    setEditingRowId(null);
+    setEditingData({});
+  }, [editingData, onTestGroupChange, onEditProjectName, onProjectLevelChange, onExpectedIssuesChange, onExpectedDIChange, onStartDateChange, onStatusChange]);
+
+  // 取消编辑
+  const handleCancelEdit = useCallback((e) => {
+    e.stopPropagation();
+    setEditingRowId(null);
+    setEditingData({});
+  }, []);
+
+  // 更新编辑中的数据
+  const updateEditingField = useCallback((field, value) => {
+    setEditingData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  // 同步 selectedProject 的 executors 数据
+  useEffect(() => {
+    if (selectedProject) {
+      const updated = projects.find(p => p.id === selectedProject.id);
+      if (updated) {
+        setSelectedProject(updated);
       }
-    },
-    [onLoadExecutors]
-  );
+    }
+  }, [projects, selectedProject]);
 
   const columns = useMemo(
     () => [
-      {
-        title: (
-          <div>
-            <div id="addBtn"> </div>
-          </div>
-        ),
-        dataIndex: "expand",
-        key: "expand",
-        width: 5,
-        align: "center",
-        onHeaderCell: () => ({
-          style: { whiteSpace: "nowrap", padding: "4px 6px" }
-        }),
-        onCell: () => ({ style: { padding: "4px 6px" } })
-      },
       {
         title: <span title="交换/路由/安全">测试组</span>,
         dataIndex: "TestGroup",
@@ -303,13 +155,23 @@ function ProjectTable({
           style: { whiteSpace: "nowrap", padding: "4px 6px" }
         }),
         onCell: () => ({ style: { padding: "4px 6px" } }),
-        render: (text, record) => (
-          <InlineEditableSelectCell
-            value={text}
-            options={TEST_GROUP_OPTIONS}
-            onSave={(val) => onTestGroupChange(record.id, val)}
-          />
-        )
+        render: (text, record) => {
+          const isEditing = editingRowId === record.id;
+          if (isEditing) {
+            return (
+              <Select
+                size="small"
+                value={editingData.TestGroup}
+                options={TEST_GROUP_OPTIONS}
+                style={{ width: "100%" }}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(val) => updateEditingField("TestGroup", val)}
+              />
+            );
+          }
+          const label = TEST_GROUP_OPTIONS.find((o) => o.value === text)?.label || text;
+          return <span>{label}</span>;
+        }
       },
       {
         title: <span title="项目名称">项目名</span>,
@@ -320,12 +182,20 @@ function ProjectTable({
           style: { whiteSpace: "nowrap", padding: "4px 6px" }
         }),
         onCell: () => ({ style: { padding: "4px 6px" } }),
-        render: (text, record) => (
-          <InlineEditableTextCell
-            value={text}
-            onSave={(val) => onEditProjectName(record.id, val)}
-          />
-        )
+        render: (text, record) => {
+          const isEditing = editingRowId === record.id;
+          if (isEditing) {
+            return (
+              <Input
+                size="small"
+                value={editingData.ProjectName}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => updateEditingField("ProjectName", e.target.value)}
+              />
+            );
+          }
+          return <span>{text}</span>;
+        }
       },
       {
         title: <span title="产品折算系数">项目系数</span>,
@@ -348,13 +218,23 @@ function ProjectTable({
           style: { whiteSpace: "nowrap", padding: "4px 6px" }
         }),
         onCell: () => ({ style: { padding: "4px 6px" } }),
-        render: (text, record) => (
-          <InlineEditableSelectCell
-            value={text}
-            options={PROJECT_LEVEL_OPTIONS}
-            onSave={(val) => onProjectLevelChange(record.id, val)}
-          />
-        )
+        render: (text, record) => {
+          const isEditing = editingRowId === record.id;
+          if (isEditing) {
+            return (
+              <Select
+                size="small"
+                value={editingData.ProjectLevel}
+                options={PROJECT_LEVEL_OPTIONS}
+                style={{ width: "100%" }}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(val) => updateEditingField("ProjectLevel", val)}
+              />
+            );
+          }
+          const label = PROJECT_LEVEL_OPTIONS.find((o) => o.value === text)?.label || text;
+          return <span>{label}</span>;
+        }
       },
       {
         title: <span title="项目参与测试人数">人数</span>,
@@ -382,14 +262,22 @@ function ProjectTable({
           title: "项目预期问题数(接口人手工填写)"
         }),
         onCell: () => ({ style: { padding: "4px 6px" } }),
-        render: (text, record) => (
-          <InlineEditableNumberCell
-            value={text}
-            style={{ color: "red" }}
-            min={0}
-            onSave={(val) => onExpectedIssuesChange(record.id, val)}
-          />
-        )
+        render: (text, record) => {
+          const isEditing = editingRowId === record.id;
+          if (isEditing) {
+            return (
+              <InputNumber
+                size="small"
+                style={{ width: "100%", color: "red" }}
+                value={editingData.ExpectedIssues}
+                min={0}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(val) => updateEditingField("ExpectedIssues", val)}
+              />
+            );
+          }
+          return <span style={{ color: "red" }}>{text}</span>;
+        }
       },
       {
         title: "预期DI",
@@ -406,15 +294,23 @@ function ProjectTable({
           title: "项目预期DI(接口人手工填写)"
         }),
         onCell: () => ({ style: { padding: "4px 6px" } }),
-        render: (text, record) => (
-          <InlineEditableNumberCell
-            value={text}
-            style={{ color: "red" }}
-            min={0}
-            step={0.01}
-            onSave={(val) => onExpectedDIChange(record.id, val)}
-          />
-        )
+        render: (text, record) => {
+          const isEditing = editingRowId === record.id;
+          if (isEditing) {
+            return (
+              <InputNumber
+                size="small"
+                style={{ width: "100%", color: "red" }}
+                value={editingData.ExpectedDI}
+                min={0}
+                step={0.01}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(val) => updateEditingField("ExpectedDI", val)}
+              />
+            );
+          }
+          return <span style={{ color: "red" }}>{text}</span>;
+        }
       },
       {
         title: <span title="预期问题均数">问题均数</span>,
@@ -448,12 +344,26 @@ function ProjectTable({
           style: { whiteSpace: "nowrap", padding: "4px 6px" }
         }),
         onCell: () => ({ style: { padding: "4px 6px" } }),
-        render: (text, record) => (
-          <InlineEditableDateCell
-            value={text}
-            onSave={(val) => onStartDateChange(record.id, val)}
-          />
-        )
+        render: (text, record) => {
+          const isEditing = editingRowId === record.id;
+          if (isEditing) {
+            const parsed = editingData.StartDate ? dayjs(editingData.StartDate) : null;
+            return (
+              <DatePicker
+                size="small"
+                value={parsed}
+                style={{ width: "100%" }}
+                format="YYYY-MM-DD"
+                onClick={(e) => e.stopPropagation()}
+                onChange={(date) => {
+                  const formatted = date ? date.format("YYYY-MM-DD") : null;
+                  updateEditingField("StartDate", formatted);
+                }}
+              />
+            );
+          }
+          return <span>{text}</span>;
+        }
       },
       {
         title: <span title="项目当前状态">状态</span>,
@@ -465,82 +375,166 @@ function ProjectTable({
           style: { whiteSpace: "nowrap", padding: "4px 6px" }
         }),
         onCell: () => ({ style: { padding: "4px 6px" } }),
-        render: (text, record) => (
-          <InlineEditableSelectCell
-            value={text}
-            options={STATUS_OPTIONS}
-            onSave={(val) => onStatusChange(record.id, val)}
-          />
-        )
+        render: (text, record) => {
+          const isEditing = editingRowId === record.id;
+          if (isEditing) {
+            return (
+              <Select
+                size="small"
+                value={editingData.Status}
+                options={STATUS_OPTIONS}
+                style={{ width: "100%" }}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(val) => updateEditingField("Status", val)}
+              />
+            );
+          }
+          const label = STATUS_OPTIONS.find((o) => o.value === text)?.label || text;
+          return <span>{label}</span>;
+        }
       },
       {
         title: "操作",
         key: "action",
-        width: 220,
+        width: 280,
         align: "center",
         onHeaderCell: () => ({
           style: { whiteSpace: "nowrap", padding: "4px 6px" }
         }),
         onCell: () => ({ style: { padding: "4px 6px" } }),
-        render: (_, record) => (
-          <>
-            <Button
-              size="small"
-              onClick={() => onAddExecutor(record)}
-              style={{ marginRight: 4 }}
-            >
-              新增执行人
-            </Button>
-            <Button
-              size="small"
-              onClick={() => onRefreshProject(record.id)}
-              style={{ marginRight: 4 }}
-            >
-              刷新
-            </Button>
-            <Button
-              size="small"
-              danger
-              onClick={() => onDeleteProject(record.id)}
-            >
-              删除
-            </Button>
-          </>
-        )
+        render: (_, record) => {
+          const isEditing = editingRowId === record.id;
+          if (isEditing) {
+            return (
+              <>
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={(e) => handleConfirmEdit(record, e)}
+                  style={{ marginRight: 4 }}
+                >
+                  确认
+                </Button>
+                <Button
+                  size="small"
+                  onClick={handleCancelEdit}
+                >
+                  取消
+                </Button>
+              </>
+            );
+          }
+          return (
+            <>
+              <Button
+                size="small"
+                onClick={(e) => handleStartEdit(record, e)}
+                style={{ marginRight: 4 }}
+              >
+                编辑
+              </Button>
+              <Button
+                size="small"
+                onClick={(e) => { e.stopPropagation(); onAddExecutor(record); }}
+                style={{ marginRight: 4 }}
+              >
+                新增执行人
+              </Button>
+              <Button
+                size="small"
+                onClick={(e) => { e.stopPropagation(); onRefreshProject(record.id); }}
+                style={{ marginRight: 4 }}
+              >
+                刷新
+              </Button>
+              <Button
+                size="small"
+                danger
+                onClick={(e) => { e.stopPropagation(); onDeleteProject(record.id); }}
+              >
+                删除
+              </Button>
+            </>
+          );
+        }
       }
     ],
     [
-      onTestGroupChange,
-      onProjectLevelChange,
-      onStatusChange,
-      onStartDateChange,
-      onExpectedIssuesChange,
-      onExpectedDIChange,
-      onEditProjectName,
+      editingRowId,
+      editingData,
+      updateEditingField,
+      handleStartEdit,
+      handleConfirmEdit,
+      handleCancelEdit,
       onAddExecutor,
       onRefreshProject,
       onDeleteProject
     ]
   );
 
+  // 渲染执行人弹窗内容
+  const renderExecutorModalContent = () => {
+    if (!selectedProject) return null;
+    const isLoading = loadingExecutors[selectedProject.id];
+
+    if (isLoading) {
+      return (
+        <div style={{ padding: 20, textAlign: "center" }}>
+          <Spin tip="加载执行人数据中..." />
+        </div>
+      );
+    }
+
+    return selectedProject.executors?.length > 0 ? (
+      <ExecutorTable
+        executors={selectedProject.executors}
+        onDeleteExecutor={(executorId) =>
+          handleDeleteExecutor(selectedProject.id, executorId)
+        }
+        onUpdateExecutor={(executorId, field, value) =>
+          handleUpdateExecutor(selectedProject.id, executorId, field, value)
+        }
+        onResetExpectedDI={(executorId) =>
+          handleResetExpectedDI(selectedProject.id, executorId)
+        }
+      />
+    ) : (
+      <div style={{ color: "#999", padding: 10 }}>当前项目暂无执行人</div>
+    );
+  };
+
   return (
-    <Table
-      rowKey="id"
-      columns={columns}
-      dataSource={projects}
-      size="small" // 使用 antd 原生 small 模式，紧凑
-      expandable={{
-        rowExpandable: () => true,
-        expandedRowRender: expandedRowRender,
-        onExpand: handleExpand
-      }}
-      pagination={{
-        pageSize: 15,
-        pageSizeOptions: ["15", "25", "50", "100"],
-        showSizeChanger: true
-      }}
-      scroll={{ y: "calc(100vh - 300px)" }}
-    />
+    <>
+      <Table
+        rowKey="id"
+        columns={columns}
+        dataSource={projects}
+        size="small"
+        onRow={(record) => ({
+          onClick: () => {
+            if (editingRowId) return; // 编辑状态下不响应行点击
+            handleRowClick(record);
+          },
+          style: { cursor: editingRowId ? "default" : "pointer" }
+        })}
+        pagination={{
+          pageSize: 15,
+          pageSizeOptions: ["15", "25", "50", "100"],
+          showSizeChanger: true
+        }}
+        scroll={{ y: "calc(100vh - 300px)" }}
+      />
+      <Modal
+        title={selectedProject ? `执行人列表 - ${selectedProject.ProjectName}` : "执行人列表"}
+        open={executorModalVisible}
+        onCancel={() => setExecutorModalVisible(false)}
+        footer={null}
+        width={1200}
+        destroyOnClose
+      >
+        {renderExecutorModalContent()}
+      </Modal>
+    </>
   );
 }
 
