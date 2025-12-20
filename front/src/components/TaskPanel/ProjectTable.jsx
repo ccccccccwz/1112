@@ -1,6 +1,6 @@
 // src/components/TaskPanel/ProjectTable.jsx
-import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { Table, Button, Select, DatePicker, Input, InputNumber, Spin, Modal, Descriptions } from "antd";
+import React, { useMemo, useCallback, useState } from "react";
+import { Table, Button, Select, DatePicker, Input, InputNumber, Spin } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
 import locale from "antd/es/date-picker/locale/zh_CN";
@@ -47,11 +47,10 @@ function ProjectTable({
   const [editingRowId, setEditingRowId] = useState(null);
   // 编辑中的临时数据
   const [editingData, setEditingData] = useState({});
-  // 执行人弹窗状态
-  const [executorModalVisible, setExecutorModalVisible] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
   // 分页状态
   const [pageSize, setPageSize] = useState(15);
+  // 展开的行
+  const [expandedRowKeys, setExpandedRowKeys] = useState([]);
 
   // 子表相关回调
   const handleDeleteExecutor = useCallback(
@@ -70,15 +69,18 @@ function ProjectTable({
     [onResetExpectedDI]
   );
 
-  // 行点击处理 - 打开执行人弹窗
-  const handleRowClick = useCallback((record) => {
-    setSelectedProject(record);
-    setExecutorModalVisible(true);
-    // 加载执行人数据
-    if (!record.executors || record.executors.length === 0) {
-      if (typeof onLoadExecutors === "function") {
-        onLoadExecutors(record.id);
+  // 展开行处理
+  const handleExpand = useCallback((expanded, record) => {
+    if (expanded) {
+      setExpandedRowKeys([record.id]);
+      // 加载执行人数据
+      if (!record.executors || record.executors.length === 0) {
+        if (typeof onLoadExecutors === "function") {
+          onLoadExecutors(record.id);
+        }
       }
+    } else {
+      setExpandedRowKeys([]);
     }
   }, [onLoadExecutors]);
 
@@ -139,15 +141,37 @@ function ProjectTable({
     setEditingData(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  // 同步 selectedProject 的 executors 数据
-  useEffect(() => {
-    if (selectedProject) {
-      const updated = projects.find(p => p.id === selectedProject.id);
-      if (updated) {
-        setSelectedProject(updated);
-      }
+  // 渲染展开行内容（执行人表格）
+  const expandedRowRender = useCallback((record) => {
+    const isLoading = loadingExecutors[record.id];
+
+    if (isLoading) {
+      return (
+        <div style={{ padding: 20, textAlign: "center" }}>
+          <Spin tip="加载执行人数据中..." />
+        </div>
+      );
     }
-  }, [projects, selectedProject]);
+
+    return record.executors?.length > 0 ? (
+      <div style={{ padding: "8px 0" }}>
+        <ExecutorTable
+          executors={record.executors}
+          onDeleteExecutor={(executorId) =>
+            handleDeleteExecutor(record.id, executorId)
+          }
+          onUpdateExecutor={(executorId, field, value) =>
+            handleUpdateExecutor(record.id, executorId, field, value)
+          }
+          onResetExpectedDI={(executorId) =>
+            handleResetExpectedDI(record.id, executorId)
+          }
+        />
+      </div>
+    ) : (
+      <div style={{ color: "#999", padding: 10 }}>当前项目暂无执行人</div>
+    );
+  }, [loadingExecutors, handleDeleteExecutor, handleUpdateExecutor, handleResetExpectedDI]);
 
   const columns = useMemo(
     () => [
@@ -346,6 +370,12 @@ function ProjectTable({
         key: "StartDate",
         width: 130,
         align: "center",
+        sorter: (a, b) => {
+          const dateA = a.StartDate ? dayjs(a.StartDate) : dayjs(0);
+          const dateB = b.StartDate ? dayjs(b.StartDate) : dayjs(0);
+          return dateA.valueOf() - dateB.valueOf();
+        },
+        defaultSortOrder: "descend",
         onHeaderCell: () => ({
           style: { whiteSpace: "nowrap", padding: "4px 6px" }
         }),
@@ -479,92 +509,26 @@ function ProjectTable({
     ]
   );
 
-  // 渲染项目信息
-  const renderProjectInfo = () => {
-    if (!selectedProject) return null;
-    return (
-      <Descriptions bordered size="small" column={4} style={{ marginBottom: 16 }}>
-        <Descriptions.Item label="测试组">{selectedProject.TestGroup}</Descriptions.Item>
-        <Descriptions.Item label="项目名称">{selectedProject.ProjectName}</Descriptions.Item>
-        <Descriptions.Item label="项目系数">{selectedProject.ConversionFactor}</Descriptions.Item>
-        <Descriptions.Item label="级别">{selectedProject.ProjectLevel}</Descriptions.Item>
-        <Descriptions.Item label="人数">{selectedProject.HeadCounts}</Descriptions.Item>
-        <Descriptions.Item label="预期问题数"><span style={{ color: "red" }}>{selectedProject.ExpectedIssues}</span></Descriptions.Item>
-        <Descriptions.Item label="预期DI"><span style={{ color: "red" }}>{selectedProject.ExpectedDI}</span></Descriptions.Item>
-        <Descriptions.Item label="开始日期">{selectedProject.StartDate}</Descriptions.Item>
-        <Descriptions.Item label="问题均数">{selectedProject.AverageIssues}</Descriptions.Item>
-        <Descriptions.Item label="DI均值">{selectedProject.AverageDI}</Descriptions.Item>
-        <Descriptions.Item label="状态">{selectedProject.Status}</Descriptions.Item>
-      </Descriptions>
-    );
-  };
-
-  // 渲染执行人弹窗内容
-  const renderExecutorModalContent = () => {
-    if (!selectedProject) return null;
-    const isLoading = loadingExecutors[selectedProject.id];
-
-    if (isLoading) {
-      return (
-        <div style={{ padding: 20, textAlign: "center" }}>
-          <Spin tip="加载执行人数据中..." />
-        </div>
-      );
-    }
-
-    return selectedProject.executors?.length > 0 ? (
-      <ExecutorTable
-        executors={selectedProject.executors}
-        onDeleteExecutor={(executorId) =>
-          handleDeleteExecutor(selectedProject.id, executorId)
-        }
-        onUpdateExecutor={(executorId, field, value) =>
-          handleUpdateExecutor(selectedProject.id, executorId, field, value)
-        }
-        onResetExpectedDI={(executorId) =>
-          handleResetExpectedDI(selectedProject.id, executorId)
-        }
-      />
-    ) : (
-      <div style={{ color: "#999", padding: 10 }}>当前项目暂无执行人</div>
-    );
-  };
-
   return (
-    <>
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={projects}
-        size="small"
-        onRow={(record) => ({
-          onClick: () => {
-            if (editingRowId) return; // 编辑状态下不响应行点击
-            handleRowClick(record);
-          },
-          style: { cursor: editingRowId ? "default" : "pointer" }
-        })}
-        pagination={{
-          pageSize: pageSize,
-          pageSizeOptions: ["15", "25", "50", "100"],
-          showSizeChanger: true,
-          onShowSizeChange: (current, size) => setPageSize(size)
-        }}
-        scroll={{ y: "calc(100vh - 300px)" }}
-      />
-      <Modal
-        title={selectedProject ? `项目详情 - ${selectedProject.ProjectName}` : "项目详情"}
-        open={executorModalVisible}
-        onCancel={() => setExecutorModalVisible(false)}
-        footer={null}
-        width={1200}
-        destroyOnClose
-      >
-        {renderProjectInfo()}
-        <div style={{ fontWeight: "bold", marginBottom: 8 }}>执行人列表</div>
-        {renderExecutorModalContent()}
-      </Modal>
-    </>
+    <Table
+      rowKey="id"
+      columns={columns}
+      dataSource={projects}
+      size="small"
+      expandable={{
+        expandedRowRender,
+        expandedRowKeys,
+        onExpand: handleExpand,
+        expandRowByClick: false
+      }}
+      pagination={{
+        pageSize: pageSize,
+        pageSizeOptions: ["15", "25", "50", "100"],
+        showSizeChanger: true,
+        onShowSizeChange: (current, size) => setPageSize(size)
+      }}
+      scroll={{ y: "calc(100vh - 300px)" }}
+    />
   );
 }
 
